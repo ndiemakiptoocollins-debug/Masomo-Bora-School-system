@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Timetable Preview | Masomo Bora</title>
+<meta name="theme-color" content="#081a2d">
+<link rel="stylesheet" href="./style.css">
+<style>
+.preview-wrap{max-width:1400px;margin:auto;padding:22px}
+.preview-top{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px}
+.preview-brand{display:flex;align-items:center;gap:12px}
+.preview-brand h1{font:800 20px Manrope,sans-serif;margin:0}
+.preview-brand p{margin:3px 0 0;color:var(--muted);font-size:11px}
+.preview-actions{display:flex;gap:8px;flex-wrap:wrap}
+.demo-note{padding:11px 14px;border:1px solid #705c32;background:#3b3222;color:#f0d99d;border-radius:10px;font-size:11px;margin-bottom:16px}
+.filters{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding:16px;background:#102a40;border:1px solid var(--line);border-radius:14px;margin-bottom:16px}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.summary>div{padding:14px;border:1px solid var(--line);background:#102a40;border-radius:12px}
+.summary small{display:block;color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.8px}
+.summary b{display:block;margin-top:6px;font:700 17px Manrope,sans-serif}
+.timetable-panel{padding:16px;background:#102a40;border:1px solid var(--line);border-radius:14px}
+.timetable-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.timetable-head h2{font:800 16px Manrope,sans-serif;margin:0}
+.timetable-head span{color:var(--muted);font-size:10px}
+.week-grid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:10px;overflow-x:auto;padding-bottom:5px}
+.day-card{background:#0b2032;border:1px solid #28475c;border-radius:11px;overflow:hidden;min-width:150px}
+.day-title{padding:11px 12px;background:#163a4c;color:#d9f4e8;font-weight:800;font-size:11px;display:flex;justify-content:space-between}
+.lesson{padding:10px 11px;border-bottom:1px solid #1d3b50}
+.lesson:last-child{border-bottom:0}
+.lesson time{display:block;color:#8db8c4;font-size:9px;margin-bottom:5px}
+.lesson b{display:block;font-size:11px;color:#edf7f4}
+.lesson small{display:block;color:#9aafbd;font-size:9px;margin-top:4px}
+.lesson.break{background:#282f34}
+.lesson.break b{color:#e4c77f}
+.lesson.remedial{border-left:3px solid #d9b76b}
+.weekend{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.weekend .day-card{min-width:0}
+.optional{color:#e4c77f;font-size:9px}
+@media(max-width:700px){.preview-wrap{padding:14px}.preview-top{align-items:flex-start;flex-direction:column}.filters{grid-template-columns:1fr}.summary{grid-template-columns:1fr 1fr}.week-grid{grid-template-columns:repeat(5,180px)}.weekend{grid-template-columns:1fr}.timetable-head{align-items:flex-start;flex-direction:column}}
+@media print{body{background:#fff;color:#111}.preview-wrap{max-width:none;padding:0}.sidebar,.preview-actions,.filters,.demo-note{display:none!important}.timetable-panel,.day-card,.summary>div{background:#fff;color:#111;border:1px solid #bbb;box-shadow:none}.day-title{background:#e8efed;color:#111}.lesson b,.timetable-head h2,.summary b{color:#111}.lesson small,.lesson time,.summary small{color:#444}.week-grid{overflow:visible;grid-template-columns:repeat(5,1fr)}.weekend{break-inside:avoid}.lesson.break{background:#f2f2f2}}
+</style>
+</head>
+<body>
+<div class="preview-wrap">
+  <header class="preview-top">
+    <div class="preview-brand"><div class="brand-mark small">MB</div><div><h1>Masomo Bora</h1><p>School timetable • Preview</p></div></div>
+    <div class="preview-actions"><a class="btn" href="./index.html">← Back to portal</a><button class="btn primary" onclick="window.print()">Print timetable</button></div>
+  </header>
+  <div class="demo-note">DEMO PREVIEW — Sample lessons and teacher names are illustrative. This page is not yet connected to your Supabase records.</div>
+  <section class="filters">
+    <label>School section<select id="section"><option>Primary School</option><option selected>Junior School</option><option>Senior School</option></select></label>
+    <label>Class / Stream<select id="class"><option>Grade 7 East</option><option>Grade 7 West</option><option>Grade 8</option><option>Grade 9</option><option>Grade 10</option></select></label>
+    <label>Academic term<select id="term"><option>Term 1 • 2027</option><option>Term 2 • 2027</option><option>Term 3 • 2027</option></select></label>
+  </section>
+  <section class="summary">
+    <div><small>Official school week</small><b>Monday – Friday</b></div>
+    <div><small>Saturday programme</small><b>Remedial to 1:00 PM</b></div>
+    <div><small>Sunday programme</small><b>Optional by school</b></div>
+  </section>
+  <section class="timetable-panel">
+    <div class="timetable-head"><div><h2 id="heading">Grade 7 East — Weekly timetable</h2><span>Illustrative lesson schedule</span></div><span class="badge">CBC • Junior School</span></div>
+    <div class="week-grid" id="weekGrid"></div>
+    <div class="weekend" id="weekendGrid"></div>
+  </section>
+</div>
+<script>
+const base={
+Monday:[['8:20–9:00','Mathematics','Tr. Kirui',''],['9:00–9:40','English','Md. Beatrice',''],['9:40–9:50','Morning break','','break'],['9:50–10:30','Kiswahili','Tr. Shibembe',''],['10:30–11:10','Integrated Science','Tr. Wekesa',''],['11:10–11:40','Tea break','','break'],['11:40–12:20','Social Studies','Tr. Norman',''],['12:20–1:00','Creative Arts','Md. Carolyne',''],['1:00–2:00','Lunch','','break'],['2:00–2:40','Pre-Technical Studies','Tr. Too',''],['2:40–3:20','Religious Education','Md. Faith','']],
+Tuesday:[['8:20–9:00','English','Md. Beatrice',''],['9:00–9:40','Mathematics','Tr. Kirui',''],['9:40–9:50','Morning break','','break'],['9:50–10:30','Agriculture','Tr. Lagat',''],['10:30–11:10','Kiswahili','Tr. Shibembe',''],['11:10–11:40','Tea break','','break'],['11:40–12:20','Integrated Science','Tr. Wekesa',''],['12:20–1:00','Creative Arts','Md. Carolyne',''],['1:00–2:00','Lunch','','break'],['2:00–2:40','Social Studies','Tr. Norman',''],['2:40–3:20','Physical Education','Tr. Too','']],
+Wednesday:[['8:20–9:00','Kiswahili','Tr. Shibembe',''],['9:00–9:40','Integrated Science','Tr. Wekesa',''],['9:40–9:50','Morning break','','break'],['9:50–10:30','Mathematics','Tr. Kirui',''],['10:30–11:10','English','Md. Beatrice',''],['11:10–11:40','Tea break','','break'],['11:40–12:20','Social Studies','Tr. Norman',''],['12:20–1:00','Agriculture','Tr. Lagat',''],['1:00–2:00','Lunch','','break'],['2:00–2:40','Life Skills','Md. Faith',''],['2:40–3:20','Pre-Technical Studies','Tr. Too','']],
+Thursday:[['8:20–9:00','Mathematics','Tr. Kirui',''],['9:00–9:40','Social Studies','Tr. Norman',''],['9:40–9:50','Morning break','','break'],['9:50–10:30','English','Md. Beatrice',''],['10:30–11:10','Creative Arts','Md. Carolyne',''],['11:10–11:40','Tea break','','break'],['11:40–12:20','Kiswahili','Tr. Shibembe',''],['12:20–1:00','Integrated Science','Tr. Wekesa',''],['1:00–2:00','Lunch','','break'],['2:00–2:40','Agriculture','Tr. Lagat',''],['2:40–3:20','Physical Education','Tr. Too','']],
+Friday:[['8:20–9:00','English','Md. Beatrice',''],['9:00–9:40','Mathematics','Tr. Kirui',''],['9:40–9:50','Morning break','','break'],['9:50–10:30','Social Studies','Tr. Norman',''],['10:30–11:10','Kiswahili','Tr. Shibembe',''],['11:10–11:40','Tea break','','break'],['11:40–12:20','Integrated Science','Tr. Wekesa',''],['12:20–1:00','Religious Education','Md. Faith',''],['1:00–2:00','Lunch','','break'],['2:00–2:40','Clubs & Societies','Md. Carolyne',''],['2:40–3:20','Class Meeting','Class Teacher','']]
+};
+const weekend={
+Saturday:[['8:00–9:00','Mathematics Support','Tr. Kirui','remedial'],['9:00–10:00','English Support','Md. Beatrice','remedial'],['10:00–10:20','Short break','','break'],['10:20–11:20','Kiswahili Support','Tr. Shibembe','remedial'],['11:20–12:20','Science Clinic','Tr. Wekesa','remedial'],['12:20–1:00','Consultation / Study','Class Team','remedial']],
+Sunday:[['Optional','No lessons scheduled','','break'],['','School may enable Sunday sessions in settings','','']]
+};
+function render(){const cls=document.getElementById('class').value;document.getElementById('heading').textContent=cls+' — Weekly timetable';document.getElementById('weekGrid').innerHTML=Object.entries(base).map(([day,items])=>'<div class="day-card"><div class="day-title">'+day+' <span>'+items.length+' slots</span></div>'+items.map(([time,subject,teacher,type])=>'<div class="lesson '+type+'"><time>'+time+'</time><b>'+subject+'</b>'+(teacher?'<small>'+teacher+'</small>':'')+'</div>').join('')+'</div>').join('');document.getElementById('weekendGrid').innerHTML=Object.entries(weekend).map(([day,items])=>'<div class="day-card"><div class="day-title">'+day+' <span>'+(day==='Saturday'?'Remedial • ends 1 PM':'Optional')+'</span></div>'+items.map(([time,subject,teacher,type])=>'<div class="lesson '+type+'"><time>'+time+'</time><b>'+subject+'</b>'+(teacher?'<small>'+teacher+'</small>':'')+'</div>').join('')+'</div>').join('');}
+document.getElementById('class').addEventListener('change',render);document.getElementById('section').addEventListener('change',e=>{const c=document.getElementById('class');c.innerHTML=e.target.value==='Primary School'?'<option>Grade 4</option><option>Grade 5</option><option>Grade 6</option>':e.target.value==='Senior School'?'<option>Grade 10</option><option>Grade 11</option><option>Grade 12</option>':'<option>Grade 7 East</option><option>Grade 7 West</option><option>Grade 8</option><option>Grade 9</option>';render();});render();
+</script>
+</body>
+</html>
