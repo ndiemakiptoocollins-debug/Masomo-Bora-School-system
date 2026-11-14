@@ -1,20 +1,64 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Masomo Bora School System</title><meta name="theme-color" content="#102b52"><meta name="description" content="Masomo Bora CBC and Junior Secondary School Management System"><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/icons/icon-192.png"><link rel="stylesheet" href="/style.css"></head>
-<body><div id="login" class="login-wrap"><div class="login-card"><div class="brand-mark">TS</div><h1>Masomo Bora</h1><p class="muted">School Management System · CBC / Junior Secondary</p><form id="loginForm"><label>Username<input name="username" value="admin" required></label><label>Password<input name="password" type="password" value="ChangeMe123!" required></label><button class="primary wide">Sign in</button></form><p class="hint">First login: admin / ChangeMe123! — change this password before real use.</p><div id="loginError" class="error"></div></div></div>
-<div id="app" class="shell hidden"><aside class="sidebar"><div class="brand"><div class="brand-mark small">TS</div><div><b>Masomo Bora</b><small>School System</small></div></div><div class="school-pill">🏫 <span>Junior Secondary School</span></div><nav id="nav">
-<button class="nav active" data-page="dashboard">▦ <span>Dashboard</span></button>
-<button class="nav" data-page="learners">♙ <span>Learners</span></button>
-<button class="nav" data-page="classes">▤ <span>Classes</span></button>
-<button class="nav" data-page="subjects">▣ <span>Subjects</span></button>
-<button class="nav" data-page="users">♧ <span>Users & Staff</span></button>
-<button class="nav" data-page="exams">▧ <span>Exams</span></button>
-<button class="nav" data-page="marks">✎ <span>Marks Management</span></button>
-<button class="nav" data-page="results">🏆 <span>Results & Merit Lists</span></button>
-<button class="nav" data-page="attendance">◷ <span>Attendance</span></button>
-<button class="nav" data-page="timetable">▦ <span>Timetables</span></button>
-<button class="nav" data-page="finance">KSh <span>Fees & Payments</span></button>
-<button class="nav" data-page="announcements">◉ <span>Announcements</span></button>
-<button class="nav" data-page="reports">▥ <span>Reports</span></button>
-</nav><button id="logout" class="logout">↪ Sign out</button></aside>
-<main class="main"><header class="topbar"><div><span class="eyebrow">TUSHENDA SCHOOL SYSTEM</span><h2 id="pageTitle">Administrator Dashboard</h2></div><div class="profile"><span class="avatar">A</span><span id="userName">Administrator</span><small id="userRole">ADMIN</small></div></header><section id="content" class="content"></section><footer>© 2026 Masomo Bora School System <span>Built for CBC / Junior Secondary</span></footer></main></div>
-<div id="toast" class="toast"></div><script src="/app.js"></script><script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));}</script></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Masomo Bora School System</title>
+<meta name="theme-color" content="#081a2d">
+<meta name="description" content="Masomo Bora CBC and Junior Secondary School Management System">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<div id="login" class="login-wrap">
+  <div class="login-card">
+    <div class="brand-mark">MB</div>
+    <div class="login-kicker">SCHOOL MANAGEMENT PLATFORM</div>
+    <h1>Masomo Bora</h1>
+    <p class="muted">A smarter way to manage learning, people and progress.</p>
+    <form id="loginForm">
+      <label>Username<input name="username" value="admin" autocomplete="username" required></label>
+      <label>Password<input name="password" type="password" value="ChangeMe123!" autocomplete="current-password" required></label>
+      <button class="primary wide">Sign in <span aria-hidden="true">→</span></button>
+    </form>
+    <p class="hint">Use your school administrator account to continue.</p>
+    <div id="loginError" class="error"></div>
+    <div class="login-foot">CBC • JUNIOR SECONDARY • SCHOOL ADMINISTRATION</div>
+  </div>
+</div>
+<div id="app" class="shell hidden">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark small">MB</div><div><b>Masomo Bora</b><small>School System</small></div></div>
+    <div class="school-pill">🏫 <span>Junior Secondary School</span></div>
+    <nav id="nav">
+      <button class="nav active" data-page="dashboard"><span class="nav-ico">▦</span><span>Dashboard</span></button>
+      <button class="nav" data-page="learners"><span class="nav-ico">♙</span><span>Learners</span></button>
+      <button class="nav" data-page="classes"><span class="nav-ico">▤</span><span>Classes</span></button>
+      <button class="nav" data-page="subjects"><span class="nav-ico">▣</span><span>Subjects</span></button>
+      <button class="nav" data-page="users"><span class="nav-ico">♧</span><span>Users & Staff</span></button>
+      <button class="nav" data-page="exams"><span class="nav-ico">▧</span><span>Exams</span></button>
+      <button class="nav" data-page="marks"><span class="nav-ico">✎</span><span>Marks Management</span></button>
+      <button class="nav" data-page="results"><span class="nav-ico">🏆</span><span>Results & Merit Lists</span></button>
+      <button class="nav" data-page="attendance"><span class="nav-ico">◷</span><span>Attendance</span></button>
+      <button class="nav" data-page="timetable"><span class="nav-ico">▦</span><span>Timetables</span></button>
+      <button class="nav" data-page="finance"><span class="nav-ico">KSh</span><span>Fees & Payments</span></button>
+      <button class="nav" data-page="announcements"><span class="nav-ico">◉</span><span>Announcements</span></button>
+      <button class="nav" data-page="reports"><span class="nav-ico">▥</span><span>Reports</span></button>
+    </nav>
+    <button id="logout" class="logout">↪ <span>Sign out</span></button>
+  </aside>
+  <main class="main">
+    <header class="topbar">
+      <div><span class="eyebrow">MASOMO BORA SCHOOL SYSTEM</span><h2 id="pageTitle">Administrator Dashboard</h2></div>
+      <div class="profile"><span class="avatar">A</span><span id="userName">Administrator</span><small id="userRole">ADMIN</small></div>
+    </header>
+    <section id="content" class="content"></section>
+    <footer>© 2026 Masomo Bora School System <span>Built for CBC / Junior Secondary</span></footer>
+  </main>
+</div>
+<div id="toast" class="toast"></div>
+<script src="./app.js"></script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));}</script>
+</body>
+</html>
