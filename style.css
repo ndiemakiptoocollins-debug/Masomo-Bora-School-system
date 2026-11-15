@@ -187,3 +187,45 @@ html[data-theme="light"] .theme-control select{background:#fff;color:#173044}
   .eyebrow{font-size:7px;letter-spacing:1px}
   .topbar h2{font-size:14px}
 }
+
+
+/* Final responsive refinements: desktop, tablet and phone */
+html,body{width:100%;overflow-x:hidden}
+.shell,.main,.content{min-width:0}
+@media (min-width:721px) and (max-width:1024px){
+  .sidebar{width:224px;padding:18px 11px 14px}
+  .main{margin-left:224px;width:calc(100% - 224px)}
+  .topbar{padding:17px 20px}
+  .content{padding:22px 19px}
+  .quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .panel-grid{grid-template-columns:1fr}
+  footer{padding-inline:20px}
+}
+@media(max-width:720px){
+  .topbar{flex-wrap:wrap;align-items:center;gap:10px}
+  .topbar-heading{width:100%;min-width:0}
+  .topbar-heading>div{min-width:0}
+  .topbar h2{overflow-wrap:anywhere;line-height:1.25}
+  .topbar-actions{width:100%;justify-content:flex-end;min-width:0}
+  .theme-control select{width:auto;max-width:min(55vw,190px)}
+  .content{min-width:0}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .panel-grid,.form-grid{grid-template-columns:minmax(0,1fr)}
+  .quick-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .table-wrap{max-width:100%;overscroll-behavior-x:contain}
+  .form-actions,.toolbar{flex-wrap:wrap}
+  .form-actions .btn,.toolbar .btn{max-width:100%}
+  .sidebar{overscroll-behavior:contain}
+}
+@media(max-width:360px){
+  .topbar{padding:12px 11px}
+  .content{padding:14px 9px}
+  .theme-control select{max-width:58vw;min-width:0}
+  .stats{gap:7px}
+  .stat{padding:11px;min-width:0}
+  .stat strong{font-size:19px;overflow-wrap:anywhere}
+  .quick-grid{gap:7px}
+  .tile{padding:11px;min-width:0}
+  .tile b,.tile small{overflow-wrap:anywhere}
+}
