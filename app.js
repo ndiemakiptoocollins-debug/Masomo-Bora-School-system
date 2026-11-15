@@ -44,8 +44,106 @@ $('#sidebarBackdrop').addEventListener('click',()=>{
   $('#menuToggle').setAttribute('aria-expanded','false');
 });
 const signOut=async()=>{const {error}=await supabaseClient.auth.signOut();if(error){toast(error.message);return}state.user=null;$('#app').classList.add('hidden');$('#login').classList.remove('hidden');$('#profileMenu').open=false};$('#logout').onclick=signOut;$('#profileLogout').onclick=signOut;document.addEventListener('click',e=>{if(!e.target.closest('#profileMenu'))$('#profileMenu').open=false});
-$('#loginForm').onsubmit=async e=>{e.preventDefault();$('#loginError').textContent='';const button=$('#loginForm button[type=submit]')||$('#loginForm button');button.disabled=true;try{const f=new FormData(e.target);const {data,error}=await supabaseClient.auth.signInWithPassword({email:f.get('email'),password:f.get('password')});if(error)throw error;state.user={email:data.user.email};showApp()}catch(err){$('#loginError').textContent=err.message||'Unable to sign in.'}finally{button.disabled=false}};
-async function render(){if(!state.data)await refresh();const p=state.page;const titles={dashboard:'Administrator Dashboard',learners:'Learner Management',classes:'Classes & Terms',subjects:'Curriculum Subjects',users:'Users & Staff',exams:'Examination Setup',marks:'Marks Management',results:'Results & Merit Lists',attendance:'Attendance Tracking',timetable:'Timetable Management',finance:'Fees & Payments',announcements:'Communication & Announcements',reports:'Academic Reports'};$('#pageTitle').textContent=titles[p]||'Dashboard';const d=state.data,c=$('#content');const admin=state.user.role==='admin';
+$('#loginForm').onsubmit=async e=>{e.preventDefault();$('#loginError').textContent='';const button=$('#loginForm button[type=submit]')||$('#loginForm button');button.disabled=true;try{const f=new FormData(e.target);const {data,error}=await supabaseClient.auth.signInWithPassword({email:f.get('email'),password:f.get('password')});if(error)throw error;state.user=data.user;showApp()}catch(err){$('#loginError').textContent=err.message||'Unable to sign in.'}finally{button.disabled=false}};
+
+async function renderProfile(){
+  $('#pageTitle').textContent='My Profile & Account Settings';
+  const c=$('#content');
+  c.innerHTML='<div class="panel"><p class="muted">Loading your profile...</p></div>';
+  try{
+    const {data:{user},error:userError}=await supabaseClient.auth.getUser();
+    if(userError)throw userError;
+    if(!user)throw new Error('Please sign in again.');
+    state.user=user;
+    let {data:profile,error}=await supabaseClient.from('profiles').select('*').eq('id',user.id).maybeSingle();
+    if(error)throw error;
+    if(!profile){
+      const created=await supabaseClient.from('profiles').insert({id:user.id}).select().single();
+      if(created.error)throw created.error;
+      profile=created.data;
+    }
+    let photoUrl='';
+    if(profile.avatar_path){
+      const signed=await supabaseClient.storage.from('profile-photos').createSignedUrl(profile.avatar_path,3600);
+      if(!signed.error)photoUrl=signed.data.signedUrl;
+    }
+    const initial=(profile.full_name||user.email||'A').trim().charAt(0).toUpperCase();
+    c.innerHTML=`<div class="profile-page-grid">
+      <section class="form-card profile-card">
+        <div class="profile-card-head">
+          <div class="profile-large-avatar">${photoUrl?`<img src="${esc(photoUrl)}" alt="Profile photo">`:esc(initial)}</div>
+          <div><h3>Personal information</h3><p class="muted">Update the details associated with your account.</p></div>
+        </div>
+        <form id="myProfileForm" class="form-grid">
+          <label>Full name<input name="full_name" value="${esc(profile.full_name||'')}" autocomplete="name" placeholder="Enter your full name"></label>
+          <label>Contact number<input name="phone" type="tel" value="${esc(profile.phone||'')}" autocomplete="tel" placeholder="e.g. 07XXXXXXXX"></label>
+          <label>Email address<input value="${esc(user.email||'')}" type="email" readonly></label>
+          <label>Teacher TSC number <span class="muted">(if applicable)</span><input name="tsc_number" value="${esc(profile.tsc_number||'')}" placeholder="Enter TSC number"></label>
+          <div class="form-actions"><button class="btn primary" type="submit">Save profile details</button></div>
+        </form>
+      </section>
+      <section class="form-card">
+        <h3>Profile photo</h3>
+        <p class="muted">Choose a JPG, PNG or WebP image. Maximum size: 2 MB.</p>
+        <form id="profilePhotoForm">
+          <label>Choose photo<input id="profilePhotoFile" type="file" accept="image/png,image/jpeg,image/webp" required></label>
+          <div class="form-actions"><button class="btn primary" type="submit">Upload photo</button></div>
+        </form>
+      </section>
+      <section class="form-card">
+        <h3>Change password</h3>
+        <p class="muted">Choose a new password for your Masomo Bora account.</p>
+        <form id="changePasswordForm" class="form-grid">
+          <label>New password<input name="password" type="password" minlength="6" autocomplete="new-password" required></label>
+          <label>Confirm new password<input name="confirm_password" type="password" minlength="6" autocomplete="new-password" required></label>
+          <div class="form-actions"><button class="btn primary" type="submit">Update password</button></div>
+        </form>
+      </section>
+    </div>`;
+    $('#myProfileForm').onsubmit=async e=>{
+      e.preventDefault();
+      const f=new FormData(e.target);
+      const values={id:user.id,full_name:String(f.get('full_name')||'').trim(),phone:String(f.get('phone')||'').trim(),tsc_number:String(f.get('tsc_number')||'').trim(),updated_at:new Date().toISOString()};
+      const saved=await supabaseClient.from('profiles').upsert(values,{onConflict:'id'});
+      if(saved.error){toast(saved.error.message);return}
+      $('#userName').textContent=values.full_name||user.email;
+      $('#profileAvatar').textContent=(values.full_name||user.email||'A').charAt(0).toUpperCase();
+      toast('Profile details saved successfully.');
+    };
+    $('#profilePhotoForm').onsubmit=async e=>{
+      e.preventDefault();
+      const file=$('#profilePhotoFile').files[0];
+      if(!file)return;
+      if(file.size>2097152){toast('Please choose an image smaller than 2 MB.');return}
+      if(!['image/png','image/jpeg','image/webp'].includes(file.type)){toast('Please choose a PNG, JPG or WebP image.');return}
+      const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const path=user.id+'/'+Date.now()+'-'+safeName;
+      const uploaded=await supabaseClient.storage.from('profile-photos').upload(path,file,{contentType:file.type,upsert:false});
+      if(uploaded.error){toast(uploaded.error.message);return}
+      const saved=await supabaseClient.from('profiles').upsert({id:user.id,avatar_path:path,updated_at:new Date().toISOString()},{onConflict:'id'});
+      if(saved.error){toast(saved.error.message);return}
+      toast('Profile photo uploaded successfully.');
+      renderProfile();
+    };
+    $('#changePasswordForm').onsubmit=async e=>{
+      e.preventDefault();
+      const f=new FormData(e.target),password=String(f.get('password')||''),confirm=String(f.get('confirm_password')||'');
+      if(password.length<6){toast('Use at least 6 characters for your password.');return}
+      if(password!==confirm){toast('The passwords do not match.');return}
+      const changed=await supabaseClient.auth.updateUser({password});
+      if(changed.error){toast(changed.error.message);return}
+      e.target.reset();
+      toast('Password updated successfully.');
+    };
+  }catch(err){
+    c.innerHTML=`<div class="form-card"><h3>Unable to load profile</h3><p class="muted">${esc(err.message||'Please try again.')}</p><button class="btn" id="retryProfile">Try again</button></div>`;
+    $('#retryProfile').onclick=renderProfile;
+  }
+}
+
+async function render(){
+if(state.page==='profile'){await renderProfile();return}
+if(!state.data)await refresh();const p=state.page;const titles={dashboard:'Administrator Dashboard',learners:'Learner Management',classes:'Classes & Terms',subjects:'Curriculum Subjects',users:'Users & Staff',exams:'Examination Setup',marks:'Marks Management',results:'Results & Merit Lists',attendance:'Attendance Tracking',timetable:'Timetable Management',finance:'Fees & Payments',announcements:'Communication & Announcements',reports:'Academic Reports'};$('#pageTitle').textContent=titles[p]||'Dashboard';const d=state.data,c=$('#content');const admin=state.user.role==='admin';
 if(p==='dashboard'){c.innerHTML=`<div class="stats"><div class="stat blue"><span>ACTIVE LEARNERS</span><strong>${d.stats.learners}</strong></div><div class="stat green"><span>TEACHING STAFF</span><strong>${d.stats.staff}</strong></div><div class="stat cyan"><span>ACTIVE CLASSES</span><strong>${d.stats.classes}</strong></div><div class="stat gold"><span>EXAMINATIONS</span><strong>${d.stats.exams}</strong></div></div><div class="section-head"><div><h3>School Administration</h3><p>Manage your school's daily academic activities.</p></div></div><div class="quick-grid">${[['♙','Learners','Register and manage learners','learners'],['▤','Classes','Organise grade levels','classes'],['✎','Enter Marks','Record assessment scores','marks'],['🏆','Merit Lists','Review class rankings','results'],['◷','Attendance','Track daily attendance','attendance'],['▦','Timetables','Manage class schedules','timetable'],['KSh','School Finance','Invoices and payments','finance'],['◉','Announcements','Communicate with families','announcements']].map(x=>`<button class="tile" data-go="${x[3]}"><span class="ico">${x[0]}</span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div><div class="panel" style="margin-top:20px"><h3>Recent announcements</h3>${d.announcements.length?d.announcements.slice(0,4).map(a=>`<p><b>${esc(a.title)}</b><br><span class="muted">${esc(a.message)}</span></p>`).join(''):'<p class="muted">No announcements published yet.</p>'}</div>`}
 else if(p==='learners'){c.innerHTML=`<div class="section-head"><div><h3>Learner register</h3><p>Maintain learner admission and guardian details.</p></div><button class="btn primary" id="toggleForm">+ Add learner</button></div><div id="formArea"></div>${table(['Admission No.','Learner name','Class','Gender','Guardian','Status',''],d.learners.map(l=>`<tr><td>${esc(l.admission_no)}</td><td><b>${esc(l.full_name)}</b></td><td>${esc(l.class_name||'—')}</td><td>${esc(l.gender||'—')}</td><td>${esc(l.guardian||'—')}</td><td><span class="badge">${esc(l.status)}</span></td><td>${admin?`<button class="btn small danger" data-delete="learners" data-id="${l.id}">Delete</button>`:''}</td></tr>`))}`;$('#toggleForm').onclick=()=>formArea.innerHTML=`<div class="form-card"><h3>Register learner</h3><form id="learnerForm" class="form-grid">${formField('Admission number','admission_no')}${formField('Full name','full_name')}${selectField('Class','class_id',opts(d.classes))}${selectField('Gender','gender',['Male','Female'].map(x=>`<option>${x}</option>`).join(''))}${formField('Guardian name','guardian')}${formField('Guardian phone','guardian_phone','tel')}${selectField('Status','status',['Active','Inactive'].map(x=>`<option>${x}</option>`).join(''))}<div class="form-actions"><button class="btn primary">Save learner</button></div></form></div>`;bindForm('learnerForm','/learners')}
 else if(p==='classes'||p==='subjects'||p==='exams'||p==='users'||p==='announcements'){const cfg={classes:{title:'Classes',route:'classes',fields:[['Class name','name'],['Level','level']],heads:['Class','Level']},subjects:{title:'Subjects',route:'subjects',fields:[['Subject code','code'],['Subject name','name']],heads:['Code','Subject']},exams:{title:'Examinations',route:'exams',fields:[['Exam name','name'],['Term','term'],['Year','year','number'],['Maximum score','max_score','number']],heads:['Exam','Term','Year','Maximum']},users:{title:'System users',route:'users',fields:[['Username','username'],['Full name','full_name'],['Role','role','select:admin,teacher,student,parent'],['Temporary password','password','password']],heads:['Username','Full name','Role','Active']},announcements:{title:'Announcements',route:'announcements',fields:[['Title','title'],['Message','message'],['Audience','audience','select:All,Teachers,Parents,Students']],heads:['Title','Message','Audience']}}[p];let rows=(await api('/'+cfg.route)).map(x=>`<tr>${cfg.fields.map(f=>`<td>${esc(x[f[1]])}</td>`).join('')}${p==='users'?`<td>${x.active?'Yes':'No'}</td>`:''}<td>${admin?`<button class="btn small danger" data-delete="${cfg.route}" data-id="${x.id}">Delete</button>`:''}</td></tr>`);c.innerHTML=`<div class="section-head"><div><h3>${cfg.title}</h3><p>Configure and maintain ${cfg.title.toLowerCase()}.</p></div>${admin?'<button class="btn primary" id="toggleForm">+ Add new</button>':''}</div><div id="formArea"></div>${table([...cfg.heads,''],rows)}`;if(admin)$('#toggleForm').onclick=()=>{formArea.innerHTML=`<div class="form-card"><h3>Add ${cfg.title.toLowerCase()}</h3><form id="genericForm" class="form-grid">${cfg.fields.map(f=>f[2]?.startsWith('select:')?`<label>${f[0]}<select name="${f[1]}">${f[2].slice(7).split(',').map(v=>`<option>${v}</option>`).join('')}</select></label>`:formField(f[0],f[1],f[2]||'text')).join('')}<div class="form-actions"><button class="btn primary">Save</button></div></form></div>`;bindForm('genericForm','/'+cfg.route)}}
@@ -61,7 +159,7 @@ $$('[data-delete]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this reco
 function bindForm(id,route){const f=$('#'+id);if(!f)return;f.onsubmit=async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(f));try{await api(route,{method:'POST',body:JSON.stringify(data)});await refresh();toast('Saved successfully');render()}catch(err){toast(err.message)}}}
 async function loadResults(){const id=$('#resultExam').value;if(!id)return;const rows=await api('/results/'+id);$('#resultArea').innerHTML=table(['Position','Admission','Learner','Class','Subjects','Total','Average'],rows.map(r=>`<tr><td><b>${r.position}</b></td><td>${esc(r.admission_no)}</td><td>${esc(r.full_name)}</td><td>${esc(r.class_name||'—')}</td><td>${r.subjects}</td><td>${r.total??0}</td><td><span class="badge">${r.average??0}%</span></td></tr>`))}
 const supabaseClient=window.supabase.createClient('https://zthxasclhlrajhuciivn.supabase.co','sb_publishable_RtolIOm-YGGLAbjde-diyg_P9CfzJWf');
-(async()=>{try{const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;if(data.session){if(location.hash.includes('type=recovery')){showPasswordResetForm();return}state.user={email:data.session.user.email};showApp()}}catch(e){console.error('Session check failed',e)}})();
+(async()=>{try{const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;if(data.session){if(location.hash.includes('type=recovery')){showPasswordResetForm();return}state.user=data.session.user;showApp()}}catch(e){console.error('Session check failed',e)}})();
 supabaseClient.auth.onAuthStateChange((_event,session)=>{if(!session){state.user=null;$('#app').classList.add('hidden');$('#login').classList.remove('hidden')}});
 
 
