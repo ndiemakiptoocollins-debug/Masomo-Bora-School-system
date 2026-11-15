@@ -284,3 +284,66 @@ html[data-theme="light"] .profile-dropdown{background:#fff}
   .theme-control select{width:96px;max-width:28vw;font-size:9px;padding-inline:4px}
   .menu-toggle{width:32px;height:34px;flex-basis:32px}
 }
+
+
+/* Mobile header: put appearance below the title on the left and profile at top right */
+@media(max-width:720px){
+  .topbar{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"heading profile" "appearance profile";
+    align-items:center;
+    column-gap:10px;
+    row-gap:7px;
+    padding:12px 14px;
+  }
+  .topbar-heading{
+    grid-area:heading;
+    display:flex!important;
+    width:auto!important;
+    min-width:0;
+    flex:initial!important;
+    align-items:center;
+  }
+  .topbar-heading-tools{
+    grid-area:appearance;
+    display:flex!important;
+    width:max-content;
+    max-width:100%;
+    margin:0!important;
+    justify-self:start;
+  }
+  .topbar-actions{
+    grid-area:profile;
+    display:flex!important;
+    width:auto!important;
+    min-width:42px;
+    margin:0!important;
+    justify-self:end;
+    align-self:center;
+  }
+  details.profile-menu{display:block!important;position:relative}
+  details.profile-menu>summary.profile{
+    display:flex!important;
+    visibility:visible!important;
+    opacity:1!important;
+    align-items:center;
+    justify-content:center;
+    min-width:40px;
+    min-height:40px;
+    padding:3px;
+    border:1px solid var(--line);
+    border-radius:11px;
+    background:var(--panel);
+  }
+  .profile-menu .avatar{display:grid!important;width:32px;height:32px}
+  .profile-menu .profile-name,.profile-menu #userRole,.profile-menu .profile-chevron{display:none!important}
+  .theme-control{font-size:10px!important;gap:7px!important}
+  .theme-control select{width:132px!important;max-width:48vw!important;min-width:0!important}
+}
+@media(max-width:390px){
+  .topbar{padding:10px 9px;column-gap:6px}
+  .topbar-heading{gap:6px}
+  .topbar h2{font-size:13px}
+  .theme-control select{width:118px!important;max-width:45vw!important;font-size:9px}
+}
