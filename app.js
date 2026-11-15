@@ -10,7 +10,39 @@ const selectField=(label,name,options,placeholder='Select...')=>`<label>${label}
 async function refresh(){state.data=await api('/bootstrap');}
 function showApp(){ $('#login').classList.add('hidden');$('#app').classList.remove('hidden');$('#userName').textContent=state.user.email;$('#userRole').textContent='ADMIN';$('#content').innerHTML=`<div class="panel"><h3>Welcome to Masomo Bora</h3><p>Your administrator account has signed in successfully.</p><p class="muted">Your secure sign-in is connected. We are now building the school database features and connecting each dashboard section one at a time.</p><div class="quick-grid"><div class="tile"><span class="ico">▦</span><b>Class timetable</b><small>Next feature to connect</small></div><div class="tile"><span class="ico">▤</span><b>Report cards</b><small>Coming after timetable</small></div></div></div>`;}
 function go(page){state.page=page;$$('.nav').forEach(b=>b.classList.toggle('active',b.dataset.page===page));render();}
-$('#nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b){e.preventDefault();toast('This section is being connected. The timetable is our next build.')}});
+$('#nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b){e.preventDefault();document.querySelector('.sidebar').classList.remove('sidebar-open');$('#sidebarBackdrop').classList.remove('show');$('#menuToggle').setAttribute('aria-expanded','false');toast('This section is being connected. The timetable is our next build.')}});
+
+const themeSelect=$('#themeSelect');
+const applyTheme=mode=>{
+  const systemLight=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches;
+  document.documentElement.dataset.theme=(mode==='system'?(systemLight?'light':'dark'):mode);
+  if(themeSelect)themeSelect.value=mode;
+};
+let savedTheme='system';
+try{savedTheme=localStorage.getItem('masomo-bora-theme')||'system'}catch(e){}
+applyTheme(savedTheme);
+if(themeSelect)themeSelect.addEventListener('change',()=>{
+  savedTheme=themeSelect.value;
+  try{localStorage.setItem('masomo-bora-theme',savedTheme)}catch(e){}
+  applyTheme(savedTheme);
+});
+if(window.matchMedia){
+  const colorScheme=window.matchMedia('(prefers-color-scheme: light)');
+  const updateSystemTheme=()=>{if(savedTheme==='system')applyTheme('system')};
+  if(colorScheme.addEventListener)colorScheme.addEventListener('change',updateSystemTheme);
+  else if(colorScheme.addListener)colorScheme.addListener(updateSystemTheme);
+}
+const toggleSidebar=()=>{
+  const open=document.querySelector('.sidebar').classList.toggle('sidebar-open');
+  $('#sidebarBackdrop').classList.toggle('show',open);
+  $('#menuToggle').setAttribute('aria-expanded',String(open));
+};
+$('#menuToggle').addEventListener('click',toggleSidebar);
+$('#sidebarBackdrop').addEventListener('click',()=>{
+  document.querySelector('.sidebar').classList.remove('sidebar-open');
+  $('#sidebarBackdrop').classList.remove('show');
+  $('#menuToggle').setAttribute('aria-expanded','false');
+});
 $('#logout').onclick=async()=>{const {error}=await supabaseClient.auth.signOut();if(error){toast(error.message);return}state.user=null;$('#app').classList.add('hidden');$('#login').classList.remove('hidden')};
 $('#loginForm').onsubmit=async e=>{e.preventDefault();$('#loginError').textContent='';const button=$('#loginForm button[type=submit]')||$('#loginForm button');button.disabled=true;try{const f=new FormData(e.target);const {data,error}=await supabaseClient.auth.signInWithPassword({email:f.get('email'),password:f.get('password')});if(error)throw error;state.user={email:data.user.email};showApp()}catch(err){$('#loginError').textContent=err.message||'Unable to sign in.'}finally{button.disabled=false}};
 async function render(){if(!state.data)await refresh();const p=state.page;const titles={dashboard:'Administrator Dashboard',learners:'Learner Management',classes:'Classes & Terms',subjects:'Curriculum Subjects',users:'Users & Staff',exams:'Examination Setup',marks:'Marks Management',results:'Results & Merit Lists',attendance:'Attendance Tracking',timetable:'Timetable Management',finance:'Fees & Payments',announcements:'Communication & Announcements',reports:'Academic Reports'};$('#pageTitle').textContent=titles[p]||'Dashboard';const d=state.data,c=$('#content');const admin=state.user.role==='admin';
