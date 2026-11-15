@@ -62,7 +62,7 @@
   <main class="main">
     <header class="topbar">
       <div class="topbar-heading"><button type="button" id="menuToggle" class="menu-toggle" aria-label="Open navigation menu" aria-expanded="false">☰</button><div><span class="eyebrow">MASOMO BORA SCHOOL SYSTEM</span><h2 id="pageTitle">Administrator Dashboard</h2></div></div>
-      <div class="topbar-actions">
+      <div class="topbar-heading-tools">
         <label class="theme-control">Appearance
           <select id="themeSelect" aria-label="Choose appearance">
             <option value="system">System default</option>
@@ -70,7 +70,22 @@
             <option value="dark">Dark</option>
           </select>
         </label>
-        <div class="profile"><span class="avatar">A</span><span id="userName">Administrator</span><small id="userRole">ADMIN</small></div>
+      </div>
+      <div class="topbar-actions">
+        <details class="profile-menu" id="profileMenu">
+          <summary class="profile">
+            <span class="avatar" id="profileAvatar">A</span>
+            <span class="profile-name" id="userName">Administrator</span>
+            <small id="userRole">ADMIN</small>
+            <span class="profile-chevron" aria-hidden="true">⌄</span>
+          </summary>
+          <div class="profile-dropdown">
+            <div class="profile-dropdown-heading">Signed in as</div>
+            <div class="profile-email" id="profileEmail">Administrator</div>
+            <div class="profile-role">Administrator account</div>
+            <button type="button" id="profileLogout" class="profile-signout">↪ Sign out</button>
+          </div>
+        </details>
       </div>
     </header>
     <section id="content" class="content"></section>
