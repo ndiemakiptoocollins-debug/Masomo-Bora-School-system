@@ -263,3 +263,24 @@ html[data-theme="light"] .profile-dropdown{background:#fff}
  .theme-control select{min-width:0;max-width:100%;width:108px}
  .topbar h2{font-size:13px}
 }
+
+
+/* Fix: keep the profile visible on phones and keep appearance beside the heading */
+@media(max-width:720px){
+  .topbar{flex-wrap:nowrap;align-items:center}
+  .topbar-heading{width:auto;flex:1 1 auto;min-width:0}
+  .topbar-heading-tools{display:flex;flex:0 1 auto;max-width:none}
+  .topbar-actions{display:flex;flex:0 0 auto;width:auto;margin-left:4px}
+  .profile-menu>summary.profile{display:flex!important;align-items:center}
+  .profile-name,.profile-menu #userRole{display:none}
+  .profile .avatar{display:grid}
+  .profile-chevron{display:none}
+  .theme-control select{width:108px;min-width:0;max-width:32vw}
+}
+@media(max-width:390px){
+  .topbar{gap:6px;padding-inline:9px}
+  .topbar-heading{gap:6px}
+  .topbar-heading-tools{margin-left:0}
+  .theme-control select{width:96px;max-width:28vw;font-size:9px;padding-inline:4px}
+  .menu-toggle{width:32px;height:34px;flex-basis:32px}
+}
