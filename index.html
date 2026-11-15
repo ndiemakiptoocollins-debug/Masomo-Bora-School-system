@@ -38,6 +38,7 @@
   </div>
 </div>
 <div id="app" class="shell hidden">
+  <button type="button" id="sidebarBackdrop" class="sidebar-backdrop" aria-label="Close navigation menu"></button>
   <aside class="sidebar">
     <div class="brand"><div class="brand-mark small">MB</div><div><b>Masomo Bora</b><small>School System</small></div></div>
     <div class="school-pill">🏫 <span>Junior Secondary School</span></div>
@@ -60,8 +61,17 @@
   </aside>
   <main class="main">
     <header class="topbar">
-      <div><span class="eyebrow">MASOMO BORA SCHOOL SYSTEM</span><h2 id="pageTitle">Administrator Dashboard</h2></div>
-      <div class="profile"><span class="avatar">A</span><span id="userName">Administrator</span><small id="userRole">ADMIN</small></div>
+      <div class="topbar-heading"><button type="button" id="menuToggle" class="menu-toggle" aria-label="Open navigation menu" aria-expanded="false">☰</button><div><span class="eyebrow">MASOMO BORA SCHOOL SYSTEM</span><h2 id="pageTitle">Administrator Dashboard</h2></div></div>
+      <div class="topbar-actions">
+        <label class="theme-control">Appearance
+          <select id="themeSelect" aria-label="Choose appearance">
+            <option value="system">System default</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+        <div class="profile"><span class="avatar">A</span><span id="userName">Administrator</span><small id="userRole">ADMIN</small></div>
+      </div>
     </header>
     <section id="content" class="content"></section>
     <footer>© 2026 Masomo Bora School System <span>Built for CBC / Junior Secondary</span></footer>
