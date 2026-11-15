@@ -29,5 +29,52 @@ $$('[data-delete]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this reco
 function bindForm(id,route){const f=$('#'+id);if(!f)return;f.onsubmit=async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(f));try{await api(route,{method:'POST',body:JSON.stringify(data)});await refresh();toast('Saved successfully');render()}catch(err){toast(err.message)}}}
 async function loadResults(){const id=$('#resultExam').value;if(!id)return;const rows=await api('/results/'+id);$('#resultArea').innerHTML=table(['Position','Admission','Learner','Class','Subjects','Total','Average'],rows.map(r=>`<tr><td><b>${r.position}</b></td><td>${esc(r.admission_no)}</td><td>${esc(r.full_name)}</td><td>${esc(r.class_name||'—')}</td><td>${r.subjects}</td><td>${r.total??0}</td><td><span class="badge">${r.average??0}%</span></td></tr>`))}
 const supabaseClient=window.supabase.createClient('https://zthxasclhlrajhuciivn.supabase.co','sb_publishable_RtolIOm-YGGLAbjde-diyg_P9CfzJWf');
-(async()=>{try{const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;if(data.session){state.user={email:data.session.user.email};showApp()}}catch(e){console.error('Session check failed',e)}})();
+(async()=>{try{const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;if(data.session){if(location.hash.includes('type=recovery')){showPasswordResetForm();return}state.user={email:data.session.user.email};showApp()}}catch(e){console.error('Session check failed',e)}})();
 supabaseClient.auth.onAuthStateChange((_event,session)=>{if(!session){state.user=null;$('#app').classList.add('hidden');$('#login').classList.remove('hidden')}});
+
+
+// Password recovery: send a reset email and let Supabase return to this hosted page.
+function showPasswordResetForm(){
+  $('#login').classList.remove('hidden');
+  $('#app').classList.add('hidden');
+  $('#loginForm').classList.add('hidden');
+  $('#forgotPasswordLink').classList.add('hidden');
+  $('#resetPasswordForm').classList.remove('hidden');
+  $('#loginError').textContent='';
+}
+$('#forgotPasswordLink').onclick=async()=>{
+  const email=$('#loginForm').elements.email.value.trim();
+  $('#loginError').textContent='';
+  if(!email){$('#loginError').textContent='Enter your email address first.';$('#loginForm').elements.email.focus();return}
+  const button=$('#forgotPasswordLink');button.disabled=true;
+  try{
+    const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
+    if(error)throw error;
+    $('#loginError').textContent='Password reset email sent. Check your inbox and open the reset link on this device.';
+  }catch(err){$('#loginError').textContent=err.message||'Could not send the reset email.'}
+  finally{button.disabled=false}
+};
+$('#resetPasswordForm').onsubmit=async e=>{
+  e.preventDefault();
+  const password=$('#newPassword').value;
+  const confirm=$('#confirmPassword').value;
+  $('#resetPasswordError').textContent='';
+  if(password.length<6){$('#resetPasswordError').textContent='Use a password with at least 6 characters.';return}
+  if(password!==confirm){$('#resetPasswordError').textContent='The passwords do not match.';return}
+  const button=$('#resetPasswordForm button[type=submit]');button.disabled=true;
+  try{
+    const {error}=await supabaseClient.auth.updateUser({password});
+    if(error)throw error;
+    await supabaseClient.auth.signOut();
+    $('#resetPasswordForm').classList.add('hidden');
+    $('#loginForm').classList.remove('hidden');
+    $('#forgotPasswordLink').classList.remove('hidden');
+    $('#loginError').textContent='Your password has been updated. Sign in with your new password.';
+    history.replaceState(null,'',window.location.pathname);
+  }catch(err){$('#resetPasswordError').textContent=err.message||'Could not update your password.'}
+  finally{button.disabled=false}
+};
+supabaseClient.auth.onAuthStateChange((event)=>{
+  if(event==='PASSWORD_RECOVERY')showPasswordResetForm();
+});
+if(location.hash.includes('type=recovery'))showPasswordResetForm();
