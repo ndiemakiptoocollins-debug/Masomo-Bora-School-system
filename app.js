@@ -54,6 +54,11 @@ $('#forgotPasswordLink').onclick=async()=>{
   }catch(err){$('#loginError').textContent=err.message||'Could not send the reset email.'}
   finally{button.disabled=false}
 };
+$('#showResetPasswords').onchange=e=>{
+  const type=e.target.checked?'text':'password';
+  $('#newPassword').type=type;
+  $('#confirmPassword').type=type;
+};
 $('#resetPasswordForm').onsubmit=async e=>{
   e.preventDefault();
   const password=$('#newPassword').value;
