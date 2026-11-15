@@ -43,7 +43,7 @@ $('#sidebarBackdrop').addEventListener('click',()=>{
   $('#sidebarBackdrop').classList.remove('show');
   $('#menuToggle').setAttribute('aria-expanded','false');
 });
-const signOut=async()=>{const {error}=await supabaseClient.auth.signOut();if(error){toast(error.message);return}state.user=null;$('#app').classList.add('hidden');$('#login').classList.remove('hidden');$('#profileMenu').open=false};$('#logout').onclick=signOut;$('#profileLogout').onclick=signOut;document.addEventListener('click',e=>{if(!e.target.closest('#profileMenu'))$('#profileMenu').open=false});
+const signOut=async()=>{const {error}=await supabaseClient.auth.signOut();if(error){toast(error.message);return}state.user=null;$('#app').classList.add('hidden');$('#login').classList.remove('hidden');$('#profileMenu').open=false};$('#logout').onclick=signOut;$('#profileLogout').onclick=signOut;$('#openMyProfile').onclick=()=>{ $('#profileMenu').open=false; go('profile'); };document.addEventListener('click',e=>{if(!e.target.closest('#profileMenu'))$('#profileMenu').open=false});
 $('#loginForm').onsubmit=async e=>{e.preventDefault();$('#loginError').textContent='';const button=$('#loginForm button[type=submit]')||$('#loginForm button');button.disabled=true;try{const f=new FormData(e.target);const {data,error}=await supabaseClient.auth.signInWithPassword({email:f.get('email'),password:f.get('password')});if(error)throw error;state.user=data.user;showApp()}catch(err){$('#loginError').textContent=err.message||'Unable to sign in.'}finally{button.disabled=false}};
 
 async function renderProfile(){
