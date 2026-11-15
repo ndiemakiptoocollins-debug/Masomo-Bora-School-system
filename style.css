@@ -347,3 +347,14 @@ html[data-theme="light"] .profile-dropdown{background:#fff}
   .topbar h2{font-size:13px}
   .theme-control select{width:118px!important;max-width:45vw!important;font-size:9px}
 }
+
+/* My Profile page */
+.profile-open{width:100%;margin-top:12px;padding:10px 12px;text-align:left;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:9px;font-weight:700}
+.profile-page-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(260px,1fr);gap:16px;align-items:start}
+.profile-card-head{display:flex;align-items:center;gap:14px;margin-bottom:20px}
+.profile-card-head h3{margin:0 0 5px}
+.profile-card-head p{margin:0}
+.profile-large-avatar{width:76px;height:76px;flex:0 0 76px;border-radius:22px;background:linear-gradient(145deg,#d9b76b,#15966f);display:grid;place-items:center;overflow:hidden;color:#082536;font-size:28px;font-weight:800}
+.profile-large-avatar img{width:100%;height:100%;object-fit:cover}
+.profile-page-grid input[readonly]{opacity:.75;cursor:not-allowed}
+@media(max-width:720px){.profile-page-grid{grid-template-columns:minmax(0,1fr)}}
