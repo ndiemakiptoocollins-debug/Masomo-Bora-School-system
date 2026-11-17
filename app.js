@@ -8,9 +8,9 @@ const table=(heads,rows)=>`<div class="table-wrap"><table><thead><tr>${heads.map
 const formField=(label,name,type='text',extra='')=>`<label>${label}<input name="${name}" type="${type}" ${extra}></label>`;
 const selectField=(label,name,options,placeholder='Select...')=>`<label>${label}<select name="${name}" required><option value="">${placeholder}</option>${options}</select></label>`;
 async function refresh(){state.data=await api('/bootstrap');}
-function showApp(){ $('#login').classList.add('hidden');$('#app').classList.remove('hidden');const email=state.user.email||'Administrator';$('#userName').textContent=email;$('#profileEmail').textContent=email;$('#userRole').textContent='ADMIN';$('#profileAvatar').textContent=(email[0]||'A').toUpperCase();$('#profileMenu').open=false;$('#content').innerHTML=`<div class="panel"><h3>Welcome to Masomo Bora</h3><p>Your administrator account has signed in successfully.</p><p class="muted">Your secure sign-in is connected. We are now building the school database features and connecting each dashboard section one at a time.</p><div class="quick-grid"><div class="tile"><span class="ico">▦</span><b>Class timetable</b><small>Next feature to connect</small></div><div class="tile"><span class="ico">▤</span><b>Report cards</b><small>Coming after timetable</small></div></div></div>`;}
+function showApp(){ $('#login').classList.add('hidden');$('#app').classList.remove('hidden');const email=state.user.email||'Administrator';$('#userName').textContent=email;$('#profileEmail').textContent=email;$('#userRole').textContent='ACCOUNT';$('#profileAvatar').textContent=(email[0]||'A').toUpperCase();$('#profileMenu').open=false;$('#content').innerHTML=`<div class="panel"><h3>Welcome to Masomo Bora</h3><p>Your administrator account has signed in successfully.</p><p class="muted">Your secure sign-in is connected. We are now building the school database features and connecting each dashboard section one at a time.</p><div class="quick-grid"><div class="tile"><span class="ico">▦</span><b>Class timetable</b><small>Next feature to connect</small></div><div class="tile"><span class="ico">▤</span><b>Report cards</b><small>Coming after timetable</small></div></div></div>`;}
 function go(page){state.page=page;$$('.nav').forEach(b=>b.classList.toggle('active',b.dataset.page===page));render();}
-$('#nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b){e.preventDefault();document.querySelector('.sidebar').classList.remove('sidebar-open');$('#sidebarBackdrop').classList.remove('show');$('#menuToggle').setAttribute('aria-expanded','false');toast('This section is being connected. The timetable is our next build.')}});
+$('#nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b){e.preventDefault();document.querySelector('.sidebar').classList.remove('sidebar-open');$('#sidebarBackdrop').classList.remove('show');$('#menuToggle').setAttribute('aria-expanded','false');if(b.dataset.page==='users'){go('users')}else{toast('This section is being connected. Users & Staff is now available.')}}});
 
 const themeSelect=$('#themeSelect');
 const applyTheme=mode=>{
@@ -143,6 +143,47 @@ async function renderProfile(){
 
 async function render(){
 if(state.page==='profile'){await renderProfile();return}
+if(state.page==='users'){
+  $('#pageTitle').textContent='Users & Staff';
+  const c=$('#content');
+  c.innerHTML=`<div class="section-head"><div><h3>Create a school account</h3><p>Only an authorised administrator can create accounts.</p></div></div>
+  <div class="form-card"><form id="adminCreateUserForm" class="form-grid">
+    ${formField('Full name','full_name','text','autocomplete="name" required')}
+    ${formField('Email address','email','email','autocomplete="email" required')}
+    ${formField('Contact number','phone','tel','autocomplete="tel"')}
+    ${formField('Teacher TSC number (if applicable)','tsc_number','text')}
+    <label>Account role<select name="role" required><option value="">Choose role</option><option value="teacher">Teacher</option><option value="student">Student</option><option value="parent">Parent</option></select></label>
+    ${formField('Temporary password','password','password','minlength="8" autocomplete="new-password" required')}
+    <div class="form-actions"><button class="btn primary" type="submit">Create account</button></div>
+  </form></div>
+  <p class="muted">The account is created securely through Supabase. Administrator access cannot be assigned from this form.</p>`;
+  $('#adminCreateUserForm').onsubmit=async e=>{
+    e.preventDefault();
+    const form=e.currentTarget;
+    const button=form.querySelector('button[type="submit"]');
+    const values=Object.fromEntries(new FormData(form));
+    button.disabled=true;
+    try{
+      const {data,error}=await supabaseClient.functions.invoke('admin-create-user',{body:{
+        full_name:String(values.full_name||'').trim(),
+        email:String(values.email||'').trim(),
+        phone:String(values.phone||'').trim(),
+        tsc_number:String(values.tsc_number||'').trim(),
+        role:String(values.role||''),
+        password:String(values.password||'')
+      }});
+      if(error)throw error;
+      if(data?.error)throw new Error(data.error);
+      form.reset();
+      toast('Account created successfully.');
+    }catch(err){
+      toast(err.message||'Could not create the account. Check administrator access and try again.');
+    }finally{
+      button.disabled=false;
+    }
+  };
+  return;
+}
 if(!state.data)await refresh();const p=state.page;const titles={dashboard:'Administrator Dashboard',learners:'Learner Management',classes:'Classes & Terms',subjects:'Curriculum Subjects',users:'Users & Staff',exams:'Examination Setup',marks:'Marks Management',results:'Results & Merit Lists',attendance:'Attendance Tracking',timetable:'Timetable Management',finance:'Fees & Payments',announcements:'Communication & Announcements',reports:'Academic Reports'};$('#pageTitle').textContent=titles[p]||'Dashboard';const d=state.data,c=$('#content');const admin=state.user.role==='admin';
 if(p==='dashboard'){c.innerHTML=`<div class="stats"><div class="stat blue"><span>ACTIVE LEARNERS</span><strong>${d.stats.learners}</strong></div><div class="stat green"><span>TEACHING STAFF</span><strong>${d.stats.staff}</strong></div><div class="stat cyan"><span>ACTIVE CLASSES</span><strong>${d.stats.classes}</strong></div><div class="stat gold"><span>EXAMINATIONS</span><strong>${d.stats.exams}</strong></div></div><div class="section-head"><div><h3>School Administration</h3><p>Manage your school's daily academic activities.</p></div></div><div class="quick-grid">${[['♙','Learners','Register and manage learners','learners'],['▤','Classes','Organise grade levels','classes'],['✎','Enter Marks','Record assessment scores','marks'],['🏆','Merit Lists','Review class rankings','results'],['◷','Attendance','Track daily attendance','attendance'],['▦','Timetables','Manage class schedules','timetable'],['KSh','School Finance','Invoices and payments','finance'],['◉','Announcements','Communicate with families','announcements']].map(x=>`<button class="tile" data-go="${x[3]}"><span class="ico">${x[0]}</span><b>${x[1]}</b><small>${x[2]}</small></button>`).join('')}</div><div class="panel" style="margin-top:20px"><h3>Recent announcements</h3>${d.announcements.length?d.announcements.slice(0,4).map(a=>`<p><b>${esc(a.title)}</b><br><span class="muted">${esc(a.message)}</span></p>`).join(''):'<p class="muted">No announcements published yet.</p>'}</div>`}
 else if(p==='learners'){c.innerHTML=`<div class="section-head"><div><h3>Learner register</h3><p>Maintain learner admission and guardian details.</p></div><button class="btn primary" id="toggleForm">+ Add learner</button></div><div id="formArea"></div>${table(['Admission No.','Learner name','Class','Gender','Guardian','Status',''],d.learners.map(l=>`<tr><td>${esc(l.admission_no)}</td><td><b>${esc(l.full_name)}</b></td><td>${esc(l.class_name||'—')}</td><td>${esc(l.gender||'—')}</td><td>${esc(l.guardian||'—')}</td><td><span class="badge">${esc(l.status)}</span></td><td>${admin?`<button class="btn small danger" data-delete="learners" data-id="${l.id}">Delete</button>`:''}</td></tr>`))}`;$('#toggleForm').onclick=()=>formArea.innerHTML=`<div class="form-card"><h3>Register learner</h3><form id="learnerForm" class="form-grid">${formField('Admission number','admission_no')}${formField('Full name','full_name')}${selectField('Class','class_id',opts(d.classes))}${selectField('Gender','gender',['Male','Female'].map(x=>`<option>${x}</option>`).join(''))}${formField('Guardian name','guardian')}${formField('Guardian phone','guardian_phone','tel')}${selectField('Status','status',['Active','Inactive'].map(x=>`<option>${x}</option>`).join(''))}<div class="form-actions"><button class="btn primary">Save learner</button></div></form></div>`;bindForm('learnerForm','/learners')}
