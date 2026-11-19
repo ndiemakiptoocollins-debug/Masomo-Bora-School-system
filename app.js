@@ -316,7 +316,7 @@ else if(p==='timetable'){
     const lessonForm=$('#addTimetableLesson');
     const lessonMessage=$('#timetableFormMessage');
     const resetLessonForm=()=>{editingLessonId=null;lessonForm.reset();$('#lessonFormTitle').textContent='Add a lesson';lessonForm.querySelector('button[type="submit"]').textContent='Save lesson';};
-    $('[data-edit-lesson]').forEach(btn=>btn.onclick=()=>{
+    $$('[data-edit-lesson]').forEach(btn=>btn.onclick=()=>{
       const x=lessons.data.find(row=>String(row.id)===btn.dataset.editLesson);if(!x)return;
       editingLessonId=x.id;
       lessonForm.elements.class_id.value=x['Class _id'];
@@ -332,7 +332,7 @@ else if(p==='timetable'){
       $('#lessonEditor').scrollIntoView({behavior:'smooth',block:'start'});
       lessonMessage.textContent='Change the details, then tap Update lesson.';
     });
-    $('[data-delete-lesson]').forEach(btn=>btn.onclick=async()=>{
+    $$('[data-delete-lesson]').forEach(btn=>btn.onclick=async()=>{
       if(!confirm('Delete this timetable lesson permanently?'))return;
       btn.disabled=true;
       const {error}=await supabaseClient.from('School Timetable').delete().eq('id',btn.dataset.deleteLesson);
@@ -374,7 +374,7 @@ else if(p==='timetable'){
     cancelEdit.id='cancelLessonEdit';
     lessonForm.querySelector('.form-actions').appendChild(cancelEdit);
     cancelEdit.onclick=()=>{resetLessonForm();cancelEdit.style.display='none';lessonMessage.textContent='Choose the class, subject, teacher and lesson time.';};
-    $('[data-edit-lesson]').forEach(btn=>btn.addEventListener('click',()=>{cancelEdit.style.display='inline-flex';}));
+    $$('[data-edit-lesson]').forEach(btn=>btn.addEventListener('click',()=>{cancelEdit.style.display='inline-flex';}));
     lessonForm.addEventListener('input',()=>{if(editingLessonId)cancelEdit.style.display='inline-flex';});
   }catch(err){
     c.innerHTML=`<div class="form-card"><h3>Unable to load timetable</h3><p class="muted">${esc(err.message||'Please try again.')}</p><button class="btn" id="retryTimetable" type="button">Try again</button></div>`;
