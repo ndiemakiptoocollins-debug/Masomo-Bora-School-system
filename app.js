@@ -299,8 +299,46 @@ else if(p==='timetable'){
     const sorted=[...lessons.data].sort((a,b)=>(dayOrder[a['Day _of_week']]||8)-(dayOrder[b['Day _of_week']]||8)||String(a['Start _time']).localeCompare(String(b['Start _time'])));
     c.innerHTML=`<div class="section-head"><div><h3>Class timetable</h3><p>Lessons saved in your Supabase school database.</p></div><button class="btn" id="refreshTimetable" type="button">Refresh</button></div>
       <div class="panel" style="margin-bottom:16px"><b>${sorted.length}</b> saved lesson(s) · <b>${classes.data.length}</b> classes · <b>${subjects.data.length}</b> subjects · <b>${teachers.data.length}</b> teachers</div>
+      <div class="form-card" style="margin-bottom:18px"><h3>Add a lesson</h3><form id="addTimetableLesson" class="form-grid">
+        ${selectField('Class / Stream','class_id',classes.data.map(x=>`<option value="${esc(x.id)}">${esc([x.Class_Name,x.Stream].filter(Boolean).join(' '))}</option>`).join(''))}
+        ${selectField('Subject','subject_id',subjects.data.map(x=>`<option value="${esc(x.id)}">${esc(x['Subject _Name']||'')}</option>`).join(''))}
+        ${selectField('Teacher','teacher_id',teachers.data.map(x=>`<option value="${esc(x.id)}">${esc([x['First Name'],x['Last Name']].filter(Boolean).join(' '))}</option>`).join(''))}
+        ${selectField('Day','day_of_week',['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(x=>`<option value="${x}">${x}</option>`).join(''))}
+        ${formField('Start time','start_time','time','required')}
+        ${formField('End time','end_time','time','required')}
+        ${selectField('Session type','session_type',['Normal','Double','Remedial','Activity'].map(x=>`<option value="${x}">${x}</option>`).join(''))}
+        ${formField('Room (optional)','room','text','placeholder="e.g. Room 1"')}
+        <div class="form-actions"><button class="btn primary" type="submit">Save lesson</button></div>
+      </form><p id="timetableFormMessage" class="muted" aria-live="polite">Choose the class, subject, teacher and lesson time.</p></div>
       ${table(['Class','Day','Start','End','Subject','Teacher','Session','Room'],sorted.map(x=>`<tr><td>${esc(classMap.get(String(x['Class _id']))||'—')}</td><td>${esc(x['Day _of_week'])}</td><td>${esc(String(x['Start _time']||'').slice(0,5))}</td><td>${esc(String(x.End_time||'').slice(0,5))}</td><td>${esc(subjectMap.get(String(x['Subject _id']))||'—')}</td><td>${esc(teacherMap.get(String(x['Teacher _id']))||'Unassigned')}</td><td>${esc(x['Session _type']||'—')}</td><td>${esc(x.Room||'—')}</td></tr>`))}`;
     $('#refreshTimetable').onclick=()=>render();
+    $('#addTimetableLesson').addEventListener('submit',async e=>{
+      e.preventDefault();
+      const form=e.currentTarget;
+      const button=form.querySelector('button[type="submit"]');
+      const values=Object.fromEntries(new FormData(form));
+      const message=$('#timetableFormMessage');
+      if(values.end_time<=values.start_time){message.textContent='End time must be later than start time.';return;}
+      button.disabled=true;message.textContent='Saving lesson...';
+      try{
+        const {error}=await supabaseClient.from('School Timetable').insert({
+          'Class _id':values.class_id,
+          'Subject _id':values.subject_id,
+          'Teacher _id':values.teacher_id,
+          'Day _of_week':values.day_of_week,
+          'Start _time':values.start_time,
+          'End_time':values.end_time,
+          'Session _type':values.session_type,
+          'Room':String(values.room||'').trim()||null
+        });
+        if(error)throw error;
+        toast('Lesson saved successfully.');
+        await render();
+      }catch(err){
+        message.textContent='Could not save lesson: '+(err.message||'Please try again.');
+        button.disabled=false;
+      }
+    });
   }catch(err){
     c.innerHTML=`<div class="form-card"><h3>Unable to load timetable</h3><p class="muted">${esc(err.message||'Please try again.')}</p><button class="btn" id="retryTimetable" type="button">Try again</button></div>`;
     $('#retryTimetable').onclick=()=>render();
