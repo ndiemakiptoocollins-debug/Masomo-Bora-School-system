@@ -299,7 +299,7 @@ else if(p==='timetable'){
     const sorted=[...lessons.data].sort((a,b)=>(dayOrder[a['Day _of_week']]||8)-(dayOrder[b['Day _of_week']]||8)||String(a['Start _time']).localeCompare(String(b['Start _time'])));
     c.innerHTML=`<div class="section-head"><div><h3>Class timetable</h3><p>Lessons saved in your Supabase school database.</p></div><button class="btn" id="refreshTimetable" type="button">Refresh</button></div>
       <div class="panel" style="margin-bottom:16px"><b>${sorted.length}</b> saved lesson(s) · <b>${classes.data.length}</b> classes · <b>${subjects.data.length}</b> subjects · <b>${teachers.data.length}</b> teachers</div>
-      <div class="form-card" style="margin-bottom:18px"><h3>Add a lesson</h3><form id="addTimetableLesson" class="form-grid">
+      <div class="form-card" id="lessonEditor" style="margin-bottom:18px"><h3 id="lessonFormTitle">Add a lesson</h3><form id="addTimetableLesson" class="form-grid">
         ${selectField('Class / Stream','class_id',classes.data.map(x=>`<option value="${esc(x.id)}">${esc([x.Class_Name,x.Stream].filter(Boolean).join(' '))}</option>`).join(''))}
         ${selectField('Subject','subject_id',subjects.data.map(x=>`<option value="${esc(x.id)}">${esc(x['Subject _Name']||'')}</option>`).join(''))}
         ${selectField('Teacher','teacher_id',teachers.data.map(x=>`<option value="${esc(x.id)}">${esc([x['First Name'],x['Last Name']].filter(Boolean).join(' '))}</option>`).join(''))}
@@ -310,8 +310,35 @@ else if(p==='timetable'){
         ${formField('Room (optional)','room','text','placeholder="e.g. Room 1"')}
         <div class="form-actions"><button class="btn primary" type="submit">Save lesson</button></div>
       </form><p id="timetableFormMessage" class="muted" aria-live="polite">Choose the class, subject, teacher and lesson time.</p></div>
-      ${table(['Class','Day','Start','End','Subject','Teacher','Session','Room'],sorted.map(x=>`<tr><td>${esc(classMap.get(String(x['Class _id']))||'—')}</td><td>${esc(x['Day _of_week'])}</td><td>${esc(String(x['Start _time']||'').slice(0,5))}</td><td>${esc(String(x.End_time||'').slice(0,5))}</td><td>${esc(subjectMap.get(String(x['Subject _id']))||'—')}</td><td>${esc(teacherMap.get(String(x['Teacher _id']))||'Unassigned')}</td><td>${esc(x['Session _type']||'—')}</td><td>${esc(x.Room||'—')}</td></tr>`))}`;
+      ${table(['Class','Day','Start','End','Subject','Teacher','Session','Room','Actions'],sorted.map(x=>`<tr><td>${esc(classMap.get(String(x['Class _id']))||'—')}</td><td>${esc(x['Day _of_week'])}</td><td>${esc(String(x['Start _time']||'').slice(0,5))}</td><td>${esc(String(x.End_time||'').slice(0,5))}</td><td>${esc(subjectMap.get(String(x['Subject _id']))||'—')}</td><td>${esc(teacherMap.get(String(x['Teacher _id']))||'Unassigned')}</td><td>${esc(x['Session _type']||'—')}</td><td>${esc(x.Room||'—')}</td><td><button class="btn small" type="button" data-edit-lesson="${esc(x.id)}">Edit</button> <button class="btn small danger" type="button" data-delete-lesson="${esc(x.id)}">Delete</button></td></tr>`))}`;
     $('#refreshTimetable').onclick=()=>render();
+    let editingLessonId=null;
+    const lessonForm=$('#addTimetableLesson');
+    const lessonMessage=$('#timetableFormMessage');
+    const resetLessonForm=()=>{editingLessonId=null;lessonForm.reset();$('#lessonFormTitle').textContent='Add a lesson';lessonForm.querySelector('button[type="submit"]').textContent='Save lesson';};
+    $('[data-edit-lesson]').forEach(btn=>btn.onclick=()=>{
+      const x=lessons.data.find(row=>String(row.id)===btn.dataset.editLesson);if(!x)return;
+      editingLessonId=x.id;
+      lessonForm.elements.class_id.value=x['Class _id'];
+      lessonForm.elements.subject_id.value=x['Subject _id'];
+      lessonForm.elements.teacher_id.value=x['Teacher _id'];
+      lessonForm.elements.day_of_week.value=x['Day _of_week'];
+      lessonForm.elements.start_time.value=String(x['Start _time']||'').slice(0,5);
+      lessonForm.elements.end_time.value=String(x.End_time||'').slice(0,5);
+      lessonForm.elements.session_type.value=x['Session _type']||'Normal';
+      lessonForm.elements.room.value=x.Room||'';
+      $('#lessonFormTitle').textContent='Edit lesson';
+      lessonForm.querySelector('button[type="submit"]').textContent='Update lesson';
+      $('#lessonEditor').scrollIntoView({behavior:'smooth',block:'start'});
+      lessonMessage.textContent='Change the details, then tap Update lesson.';
+    });
+    $('[data-delete-lesson]').forEach(btn=>btn.onclick=async()=>{
+      if(!confirm('Delete this timetable lesson permanently?'))return;
+      btn.disabled=true;
+      const {error}=await supabaseClient.from('School Timetable').delete().eq('id',btn.dataset.deleteLesson);
+      if(error){toast('Could not delete lesson: '+error.message);btn.disabled=false;return;}
+      toast('Lesson deleted.');await render();
+    });
     $('#addTimetableLesson').addEventListener('submit',async e=>{
       e.preventDefault();
       const form=e.currentTarget;
@@ -319,9 +346,9 @@ else if(p==='timetable'){
       const values=Object.fromEntries(new FormData(form));
       const message=$('#timetableFormMessage');
       if(values.end_time<=values.start_time){message.textContent='End time must be later than start time.';return;}
-      button.disabled=true;message.textContent='Saving lesson...';
+      button.disabled=true;message.textContent=editingLessonId?'Updating lesson...':'Saving lesson...';
       try{
-        const {error}=await supabaseClient.from('School Timetable').insert({
+        const payload={
           'Class _id':values.class_id,
           'Subject _id':values.subject_id,
           'Teacher _id':values.teacher_id,
@@ -330,15 +357,25 @@ else if(p==='timetable'){
           'End_time':values.end_time,
           'Session _type':values.session_type,
           'Room':String(values.room||'').trim()||null
-        });
-        if(error)throw error;
-        toast('Lesson saved successfully.');
+        };
+        const result=editingLessonId
+          ? await supabaseClient.from('School Timetable').update(payload).eq('id',editingLessonId)
+          : await supabaseClient.from('School Timetable').insert(payload);
+        if(result.error)throw result.error;
+        toast(editingLessonId?'Lesson updated successfully.':'Lesson saved successfully.');
         await render();
       }catch(err){
         message.textContent='Could not save lesson: '+(err.message||'Please try again.');
         button.disabled=false;
       }
     });
+    const cancelEdit=document.createElement('button');
+    cancelEdit.type='button';cancelEdit.className='btn';cancelEdit.textContent='Cancel edit';cancelEdit.style.display='none';
+    cancelEdit.id='cancelLessonEdit';
+    lessonForm.querySelector('.form-actions').appendChild(cancelEdit);
+    cancelEdit.onclick=()=>{resetLessonForm();cancelEdit.style.display='none';lessonMessage.textContent='Choose the class, subject, teacher and lesson time.';};
+    $('[data-edit-lesson]').forEach(btn=>btn.addEventListener('click',()=>{cancelEdit.style.display='inline-flex';}));
+    lessonForm.addEventListener('input',()=>{if(editingLessonId)cancelEdit.style.display='inline-flex';});
   }catch(err){
     c.innerHTML=`<div class="form-card"><h3>Unable to load timetable</h3><p class="muted">${esc(err.message||'Please try again.')}</p><button class="btn" id="retryTimetable" type="button">Try again</button></div>`;
     $('#retryTimetable').onclick=()=>render();
