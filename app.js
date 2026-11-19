@@ -164,6 +164,7 @@ if(state.page==='users'){
   </div>
   <div id="registeredUsersArea" class="panel"><p class="muted">Loading registered users...</p></div>`;
   let registeredUsers=[];
+  let editingUserId=null;
   const renderRegisteredUsers=()=>{
     const area=$('#registeredUsersArea');
     if(!area)return;
@@ -174,14 +175,59 @@ if(state.page==='users'){
       const haystack=[u.full_name,u.email,u.phone,u.role].join(' ').toLowerCase();
       return matchesRole&&(!query||haystack.includes(query));
     });
-    if(!filtered.length){
-      area.innerHTML='<p class="muted">No registered users match your search or filter.</p>';
-      return;
+    const editing=registeredUsers.find(u=>u.id===editingUserId);
+    let editHtml='';
+    if(editing){
+      editHtml='<div class="form-card" style="margin-bottom:16px"><h3>Edit user details</h3>'+
+        '<form id="editRegisteredUserForm" class="form-grid">'+
+        '<label>Full name<input name="full_name" value="'+esc(editing.full_name||'')+'" required></label>'+
+        '<label>Email address<input value="'+esc(editing.email||'')+'" disabled></label>'+
+        '<label>Contact number<input name="phone" type="tel" value="'+esc(editing.phone||'')+'"></label>'+
+        '<label>TSC number<input name="tsc_number" value="'+esc(editing.tsc_number||'')+'"></label>'+
+        '<label>Account role<select name="role" required>'+
+        '<option value="teacher" '+(editing.role==='teacher'?'selected':'')+'>Teacher</option>'+
+        '<option value="student" '+(editing.role==='student'?'selected':'')+'>Student</option>'+
+        '<option value="parent" '+(editing.role==='parent'?'selected':'')+'>Parent</option>'+
+        '</select></label><div class="form-actions">'+
+        '<button class="btn primary" type="submit">Save changes</button>'+
+        '<button class="btn" id="cancelEditUser" type="button">Cancel</button>'+
+        '</div></form></div>';
     }
-    area.innerHTML=table(['Full name','Email','Contact','Account role','Date created'],filtered.map(u=>{
+    const tableHtml=filtered.length?table(['Full name','Email','Contact','Account role','Date created','Actions'],filtered.map(u=>{
       const created=u.created_at?new Date(u.created_at).toLocaleDateString():'—';
-      return `<tr><td><b>${esc(u.full_name||'—')}</b></td><td>${esc(u.email||'—')}</td><td>${esc(u.phone||'—')}</td><td><span class="badge">${esc(u.role||'unassigned')}</span></td><td>${esc(created)}</td></tr>`;
-    }));
+      const action=u.role==='admin'?'—':'<button class="btn small" type="button" data-edit-user="'+esc(u.id)+'">Edit</button>';
+      return '<tr><td><b>'+esc(u.full_name||'—')+'</b></td><td>'+esc(u.email||'—')+'</td><td>'+esc(u.phone||'—')+'</td><td><span class="badge">'+esc(u.role||'unassigned')+'</span></td><td>'+esc(created)+'</td><td>'+action+'</td></tr>';
+    })):'<p class="muted">No registered users match your search or filter.</p>';
+    area.innerHTML=editHtml+tableHtml;
+    area.querySelectorAll('[data-edit-user]').forEach(button=>{
+      button.onclick=()=>{editingUserId=button.dataset.editUser;renderRegisteredUsers();};
+    });
+    $('#cancelEditUser')?.addEventListener('click',()=>{editingUserId=null;renderRegisteredUsers();});
+    $('#editRegisteredUserForm')?.addEventListener('submit',async e=>{
+      e.preventDefault();
+      const form=e.currentTarget;
+      const button=form.querySelector('button[type="submit"]');
+      const values=Object.fromEntries(new FormData(form));
+      button.disabled=true;
+      try{
+        const {data,error}=await supabaseClient.functions.invoke('admin-update-user',{body:{
+          user_id:editing.id,
+          full_name:String(values.full_name||'').trim(),
+          phone:String(values.phone||'').trim(),
+          tsc_number:String(values.tsc_number||'').trim(),
+          role:String(values.role||'')
+        }});
+        if(error)throw error;
+        if(data?.error)throw new Error(data.error);
+        editingUserId=null;
+        toast('User details updated successfully.');
+        await loadRegisteredUsers();
+      }catch(err){
+        toast(err.message||'Could not update user details. Please try again.');
+      }finally{
+        button.disabled=false;
+      }
+    });
   };
   const loadRegisteredUsers=async()=>{
     const area=$('#registeredUsersArea');
