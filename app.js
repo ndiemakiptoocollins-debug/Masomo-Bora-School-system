@@ -156,7 +156,28 @@ if(state.page==='users'){
     ${formField('Temporary password','password','password','minlength="8" autocomplete="new-password" required')}
     <div class="form-actions"><button class="btn primary" type="submit">Create account</button></div>
   </form></div>
-  <p class="muted">The account is created securely through Supabase. Administrator access cannot be assigned from this form.</p>`;
+  <p class="muted">The account is created securely through Supabase. Administrator access cannot be assigned from this form.</p>
+  <div class="section-head" style="margin-top:28px"><div><h3>Registered users</h3><p>Accounts currently registered in the school system.</p></div><button class="btn" id="refreshUsers" type="button">Refresh list</button></div>
+  <div id="registeredUsersArea" class="panel"><p class="muted">Loading registered users...</p></div>`;
+  const loadRegisteredUsers=async()=>{
+    const area=$('#registeredUsersArea');
+    if(!area)return;
+    area.innerHTML='<p class="muted">Loading registered users...</p>';
+    try{
+      const {data,error}=await supabaseClient.functions.invoke('admin-list-users');
+      if(error)throw error;
+      if(data?.error)throw new Error(data.error);
+      const users=Array.isArray(data?.users)?data.users:[];
+      area.innerHTML=table(['Full name','Email','Contact','Account role','Date created'],users.map(u=>{
+        const created=u.created_at?new Date(u.created_at).toLocaleDateString():'—';
+        return `<tr><td><b>${esc(u.full_name||'—')}</b></td><td>${esc(u.email||'—')}</td><td>${esc(u.phone||'—')}</td><td><span class="badge">${esc(u.role||'unassigned')}</span></td><td>${esc(created)}</td></tr>`;
+      }));
+    }catch(err){
+      area.innerHTML=`<p class="muted">Could not load registered users: ${esc(err.message||'Please try again.')}</p>`;
+    }
+  };
+  $('#refreshUsers').onclick=loadRegisteredUsers;
+  loadRegisteredUsers();
   $('#adminCreateUserForm').onsubmit=async e=>{
     e.preventDefault();
     const form=e.currentTarget;
@@ -176,6 +197,7 @@ if(state.page==='users'){
       if(data?.error)throw new Error(data.error);
       form.reset();
       toast('Account created successfully.');
+      await loadRegisteredUsers();
     }catch(err){
       toast(err.message||'Could not create the account. Check administrator access and try again.');
     }finally{
