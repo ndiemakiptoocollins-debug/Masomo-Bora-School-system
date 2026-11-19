@@ -158,7 +158,31 @@ if(state.page==='users'){
   </form></div>
   <p class="muted">The account is created securely through Supabase. Administrator access cannot be assigned from this form.</p>
   <div class="section-head" style="margin-top:28px"><div><h3>Registered users</h3><p>Accounts currently registered in the school system.</p></div><button class="btn" id="refreshUsers" type="button">Refresh list</button></div>
+  <div class="form-grid" style="margin:12px 0">
+    <label>Search users<input id="userSearch" type="search" placeholder="Search name, email or contact"></label>
+    <label>Filter by role<select id="userRoleFilter"><option value="">All roles</option><option value="admin">Admin</option><option value="teacher">Teacher</option><option value="student">Student</option><option value="parent">Parent</option><option value="unassigned">Unassigned</option></select></label>
+  </div>
   <div id="registeredUsersArea" class="panel"><p class="muted">Loading registered users...</p></div>`;
+  let registeredUsers=[];
+  const renderRegisteredUsers=()=>{
+    const area=$('#registeredUsersArea');
+    if(!area)return;
+    const query=String($('#userSearch')?.value||'').trim().toLowerCase();
+    const role=String($('#userRoleFilter')?.value||'');
+    const filtered=registeredUsers.filter(u=>{
+      const matchesRole=!role||String(u.role||'').toLowerCase()===role;
+      const haystack=[u.full_name,u.email,u.phone,u.role].join(' ').toLowerCase();
+      return matchesRole&&(!query||haystack.includes(query));
+    });
+    if(!filtered.length){
+      area.innerHTML='<p class="muted">No registered users match your search or filter.</p>';
+      return;
+    }
+    area.innerHTML=table(['Full name','Email','Contact','Account role','Date created'],filtered.map(u=>{
+      const created=u.created_at?new Date(u.created_at).toLocaleDateString():'—';
+      return `<tr><td><b>${esc(u.full_name||'—')}</b></td><td>${esc(u.email||'—')}</td><td>${esc(u.phone||'—')}</td><td><span class="badge">${esc(u.role||'unassigned')}</span></td><td>${esc(created)}</td></tr>`;
+    }));
+  };
   const loadRegisteredUsers=async()=>{
     const area=$('#registeredUsersArea');
     if(!area)return;
@@ -167,15 +191,14 @@ if(state.page==='users'){
       const {data,error}=await supabaseClient.functions.invoke('admin-list-users');
       if(error)throw error;
       if(data?.error)throw new Error(data.error);
-      const users=Array.isArray(data?.users)?data.users:[];
-      area.innerHTML=table(['Full name','Email','Contact','Account role','Date created'],users.map(u=>{
-        const created=u.created_at?new Date(u.created_at).toLocaleDateString():'—';
-        return `<tr><td><b>${esc(u.full_name||'—')}</b></td><td>${esc(u.email||'—')}</td><td>${esc(u.phone||'—')}</td><td><span class="badge">${esc(u.role||'unassigned')}</span></td><td>${esc(created)}</td></tr>`;
-      }));
+      registeredUsers=Array.isArray(data?.users)?data.users:[];
+      renderRegisteredUsers();
     }catch(err){
       area.innerHTML=`<p class="muted">Could not load registered users: ${esc(err.message||'Please try again.')}</p>`;
     }
   };
+  $('#userSearch').oninput=renderRegisteredUsers;
+  $('#userRoleFilter').onchange=renderRegisteredUsers;
   $('#refreshUsers').onclick=loadRegisteredUsers;
   loadRegisteredUsers();
   $('#adminCreateUserForm').onsubmit=async e=>{
