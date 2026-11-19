@@ -287,9 +287,9 @@ else if(p==='timetable'){
   try{
     const [lessons,classes,subjects,teachers]=await Promise.all([
       supabaseClient.from('School Timetable').select('*').order('Day _of_week').order('Start _time'),
-      supabaseClient.from('Classes').select('id, Class_Name, Stream').order('id'),
-      supabaseClient.from('Subjects').select('id, Subject _Name').order('id'),
-      supabaseClient.from('Teachers').select('id, First Name, Last Name').order('id')
+      supabaseClient.from('Classes').select('*').order('id'),
+      supabaseClient.from('Subjects').select('*').order('id'),
+      supabaseClient.from('Teachers').select('*').order('id')
     ]);
     for(const result of [lessons,classes,subjects,teachers])if(result.error)throw result.error;
     const classMap=new Map(classes.data.map(x=>[String(x.id),[x.Class_Name,x.Stream].filter(Boolean).join(' ')]));
