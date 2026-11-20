@@ -224,7 +224,7 @@ if(state.page==='teachers'){
               String(x['Start _time']||'').slice(0,5)+'–'+String(x.End_time||'').slice(0,5),
               classMap.get(String(x['Class _id']))||'Class',
               subjectMap.get(String(x['Subject _id']))||'Subject'
-            ].join(' | ')).join('\\n');
+            ].join(' | ')).join('\n');
             alert(name+' is assigned to '+linked.data.length+' timetable lesson(s):\\n\\n'+details+'\\n\\nReassign or remove these lessons before deleting this teacher.');
             return;
           }
