@@ -97,6 +97,50 @@
 <div id="toast" class="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="./app.js?v=17"></script>
+
+<script>
+// Independent login fallback: keeps authentication usable if the main app script fails.
+(function(){
+  const form=document.getElementById('loginForm');
+  const forgot=document.getElementById('forgotPasswordLink');
+  const message=document.getElementById('loginError');
+  if(!form||!forgot||!message||!window.supabase)return;
+  const client=window.__masomoLoginClient||(window.__masomoLoginClient=window.supabase.createClient(
+    'https://zthxasclhlrajhuciivn.supabase.co',
+    'sb_publishable_RtolIOm-YGGLAbjde-diyg_P9CfzJWf'
+  ));
+  form.onsubmit=async function(event){
+    event.preventDefault();
+    message.textContent='Signing in...';
+    const button=form.querySelector('button[type="submit"]')||form.querySelector('button');
+    if(button)button.disabled=true;
+    try{
+      const email=String(form.elements.email.value||'').trim();
+      const password=String(form.elements.password.value||'');
+      const result=await client.auth.signInWithPassword({email,password});
+      if(result.error)throw result.error;
+      message.textContent='Sign-in successful. Opening your dashboard...';
+      window.location.reload();
+    }catch(error){
+      message.textContent=error&&error.message?error.message:'Unable to sign in. Please try again.';
+    }finally{if(button)button.disabled=false;}
+  };
+  forgot.onclick=async function(){
+    const email=String(form.elements.email.value||'').trim();
+    if(!email){message.textContent='Enter your email address first.';form.elements.email.focus();return;}
+    forgot.disabled=true;
+    message.textContent='Sending password reset email...';
+    try{
+      const result=await client.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
+      if(result.error)throw result.error;
+      message.textContent='Password reset email sent. Check your inbox.';
+    }catch(error){
+      message.textContent=error&&error.message?error.message:'Could not send the reset email.';
+    }finally{forgot.disabled=false;}
+  };
+})();
+</script>
+
 <script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("./service-worker.js").catch(()=>{}));}</script>
 </body>
 </html>
