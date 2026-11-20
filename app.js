@@ -203,7 +203,7 @@ if(state.page==='teachers'){
           await render();
         }catch(err){toast('Could not update teacher: '+(err.message||'Please try again.'));button.disabled=false;}
       });
-      $('[data-delete-teacher]').forEach(btn=>btn.onclick=async()=>{
+      $$('[data-delete-teacher]').forEach(btn=>btn.onclick=async()=>{
         const teacher=teachers.find(t=>String(t.id)===btn.dataset.deleteTeacher);
         const name=teacher?[teacher['First Name'],teacher['Last Name']].filter(Boolean).join(' '):'this teacher';
         btn.disabled=true;
