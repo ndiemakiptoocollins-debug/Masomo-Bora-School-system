@@ -1,3 +1,13 @@
+// Show startup/runtime errors on the login screen so they can be diagnosed on mobile.
+window.addEventListener('error',event=>{
+  const box=document.getElementById('loginError');
+  if(box)box.textContent='App startup error: '+(event.message||'A script failed to run.');
+});
+window.addEventListener('unhandledrejection',event=>{
+  const box=document.getElementById('loginError');
+  const reason=event.reason;
+  if(box)box.textContent='App error: '+(reason&&reason.message?reason.message:String(reason||'An operation failed.'));
+});
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 let state={user:null,data:null,page:'dashboard'};
 const api=async(url,opts={})=>{const r=await fetch('/api'+url,{headers:{'Content-Type':'application/json'},...opts});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Request failed');return d};
