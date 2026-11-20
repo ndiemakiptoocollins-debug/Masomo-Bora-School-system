@@ -178,7 +178,7 @@ if(state.page==='teachers'){
         '<div class="panel" style="margin-bottom:14px"><b>'+teachers.length+'</b> teacher record(s)</div>'+editor+
         table(['Teacher','TSC Number','Contact','Email','Actions'],rows);
       $('#refreshTeachers').onclick=()=>render();
-      $('[data-edit-teacher]').forEach(btn=>btn.onclick=()=>{editingTeacherId=btn.dataset.editTeacher;renderTeachers();});
+      $$('[data-edit-teacher]').forEach(btn=>btn.onclick=()=>{editingTeacherId=btn.dataset.editTeacher;renderTeachers();});
       $('#cancelTeacherEdit')?.addEventListener('click',()=>{editingTeacherId=null;renderTeachers();});
       $('#editTeacherForm')?.addEventListener('submit',async e=>{
         e.preventDefault();
@@ -203,7 +203,7 @@ if(state.page==='teachers'){
           await render();
         }catch(err){toast('Could not update teacher: '+(err.message||'Please try again.'));button.disabled=false;}
       });
-      $('[data-delete-teacher]').forEach(btn=>btn.onclick=async()=>{
+      $$('[data-delete-teacher]').forEach(btn=>btn.onclick=async()=>{
         const teacher=teachers.find(t=>String(t.id)===btn.dataset.deleteTeacher);
         const name=teacher?[teacher['First Name'],teacher['Last Name']].filter(Boolean).join(' '):'this teacher';
         if(!confirm('Delete '+name+' permanently? Any timetable lessons linked to this teacher may prevent deletion.'))return;
