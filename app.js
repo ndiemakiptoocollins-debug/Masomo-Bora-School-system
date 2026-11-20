@@ -203,17 +203,38 @@ if(state.page==='teachers'){
           await render();
         }catch(err){toast('Could not update teacher: '+(err.message||'Please try again.'));button.disabled=false;}
       });
-      $$('[data-delete-teacher]').forEach(btn=>btn.onclick=async()=>{
+      $('[data-delete-teacher]').forEach(btn=>btn.onclick=async()=>{
         const teacher=teachers.find(t=>String(t.id)===btn.dataset.deleteTeacher);
         const name=teacher?[teacher['First Name'],teacher['Last Name']].filter(Boolean).join(' '):'this teacher';
-        if(!confirm('Delete '+name+' permanently? Any timetable lessons linked to this teacher may prevent deletion.'))return;
         btn.disabled=true;
         try{
+          const linked=await supabaseClient.from('School Timetable').select('"Day _of_week","Start _time","End_time","Class _id","Subject _id"').eq('Teacher _id',btn.dataset.deleteTeacher).order('Day _of_week').order('Start _time');
+          if(linked.error)throw linked.error;
+          if(linked.data.length){
+            const [classResult,subjectResult]=await Promise.all([
+              supabaseClient.from('Classes').select('id,"Class_Name","Stream"'),
+              supabaseClient.from('Subjects').select('id,"Subject _Name"')
+            ]);
+            if(classResult.error)throw classResult.error;
+            if(subjectResult.error)throw subjectResult.error;
+            const classMap=new Map(classResult.data.map(x=>[String(x.id),[x.Class_Name,x.Stream].filter(Boolean).join(' ')]));
+            const subjectMap=new Map(subjectResult.data.map(x=>[String(x.id),x['Subject _Name']]));
+            const details=linked.data.map(x=>[
+              x['Day _of_week'],
+              String(x['Start _time']||'').slice(0,5)+'–'+String(x.End_time||'').slice(0,5),
+              classMap.get(String(x['Class _id']))||'Class',
+              subjectMap.get(String(x['Subject _id']))||'Subject'
+            ].join(' | ')).join('\\n');
+            alert(name+' is assigned to '+linked.data.length+' timetable lesson(s):\\n\\n'+details+'\\n\\nReassign or remove these lessons before deleting this teacher.');
+            return;
+          }
+          if(!confirm('No timetable lessons are linked to '+name+'. Delete this teacher permanently?'))return;
           const result=await supabaseClient.from('Teachers').delete().eq('id',btn.dataset.deleteTeacher);
           if(result.error)throw result.error;
           toast('Teacher record deleted.');
           await render();
-        }catch(err){toast('Could not delete teacher: '+(err.message||'Please check linked timetable records.'));btn.disabled=false;}
+        }catch(err){toast('Could not check or delete teacher: '+(err.message||'Please try again.'));}
+        finally{btn.disabled=false;}
       });
     };
     renderTeachers();
