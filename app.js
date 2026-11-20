@@ -8,7 +8,34 @@ const table=(heads,rows)=>`<div class="table-wrap"><table><thead><tr>${heads.map
 const formField=(label,name,type='text',extra='')=>`<label>${label}<input name="${name}" type="${type}" ${extra}></label>`;
 const selectField=(label,name,options,placeholder='Select...')=>`<label>${label}<select name="${name}" required><option value="">${placeholder}</option>${options}</select></label>`;
 async function refresh(){state.data=await api('/bootstrap');}
-function showApp(){ $('#login').classList.add('hidden');$('#app').classList.remove('hidden');const email=state.user.email||'Administrator';$('#userName').textContent=email;$('#profileEmail').textContent=email;$('#userRole').textContent='ACCOUNT';$('#profileAvatar').textContent=(email[0]||'A').toUpperCase();$('#profileMenu').open=false;$('#content').innerHTML=`<div class="panel"><h3>Welcome to Masomo Bora</h3><p>Your administrator account has signed in successfully.</p><p class="muted">Your secure sign-in is connected. We are now building the school database features and connecting each dashboard section one at a time.</p><div class="quick-grid"><button type="button" class="tile" id="openClassTimetable" style="text-align:left;cursor:pointer"><span class="ico">▦</span><b>Class timetable</b><small>Open saved school timetable</small></button><div class="tile"><span class="ico">▤</span><b>Report cards</b><small>Coming after timetable</small></div></div></div>`;$('#openClassTimetable').addEventListener('click',()=>go('timetable'));}
+function showApp(){
+ $('#login').classList.add('hidden');$('#app').classList.remove('hidden');
+ const email=state.user.email||'Administrator';
+ $('#userName').textContent=email;$('#profileEmail').textContent=email;$('#userRole').textContent='ACCOUNT';
+ $('#profileAvatar').textContent=(email[0]||'A').toUpperCase();$('#profileMenu').open=false;
+ const liveModules=[
+  {page:'timetable',icon:'▦',title:'Timetable Management',desc:'View and manage class lessons',tone:'blue'},
+  {page:'subjects',icon:'▣',title:'Subject Management',desc:'Maintain school subjects',tone:'teal'},
+  {page:'teachers',icon:'♙',title:'Teacher Management',desc:'Manage staff and allocations',tone:'violet'},
+  {page:'users',icon:'♧',title:'Users & Staff',desc:'Manage system accounts',tone:'gold'}
+ ];
+ const comingModules=[
+  {icon:'♙',title:'Learner Management',desc:'Registration, learner profiles and ID cards'},
+  {icon:'▤',title:'Classes & Streams',desc:'Organize classes and class lists'},
+  {icon:'KSh',title:'Finance Management',desc:'Fees, payments and receipts'},
+  {icon:'◷',title:'Attendance',desc:'Daily learner and staff attendance'},
+  {icon:'▧',title:'Exams & Results',desc:'Assessments, marks and report cards'},
+  {icon:'▥',title:'Reports & Documents',desc:'School reports and printable documents'}
+ ];
+ $('#content').innerHTML=
+  '<section class="dashboard-hero"><div><span class="hero-kicker">SCHOOL MANAGEMENT PLATFORM</span><h2>Welcome to Masomo Bora</h2><p>Your school operations, organized in one place.</p></div><div class="hero-emblem">MB</div></section>'+
+  '<div class="section-head dashboard-section-head"><div><h3>Quick access</h3><p>Open an available management section.</p></div></div>'+
+  '<div class="dashboard-grid">'+liveModules.map(m=>'<button type="button" class="module-card '+m.tone+'" data-dashboard-page="'+m.page+'"><span class="module-icon">'+m.icon+'</span><span class="module-title">'+m.title+'</span><span class="module-desc">'+m.desc+'</span><span class="module-link">Open section →</span></button>').join('')+'</div>'+
+  '<div class="section-head dashboard-section-head coming-head"><div><h3>More school modules</h3><p>Planned for upcoming development phases.</p></div></div>'+
+  '<div class="coming-grid">'+comingModules.map(m=>'<div class="coming-card"><span class="coming-icon">'+m.icon+'</span><div><b>'+m.title+'</b><small>'+m.desc+'</small></div><span class="coming-label">Coming soon</span></div>').join('')+'</div>'+
+  '<div class="dashboard-note"><span>✦</span><div><b>Built for every school</b><small>Each school will be able to add its own name, logo and colours.</small></div></div>';
+ $('[data-dashboard-page]').forEach(button=>button.addEventListener('click',()=>go(button.dataset.dashboardPage)));
+}
 window.__masomoOpenDashboard=user=>{state.user=user;showApp();};
 function go(page){state.page=page;$$('.nav').forEach(b=>b.classList.toggle('active',b.dataset.page===page));render();}
 $('#nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b){e.preventDefault();document.querySelector('.sidebar').classList.remove('sidebar-open');$('#sidebarBackdrop').classList.remove('show');$('#menuToggle').setAttribute('aria-expanded','false');if(['users','teachers','subjects','timetable'].includes(b.dataset.page)){go(b.dataset.page)}else{toast('This section is being connected. Users & Staff and Timetable are now available.')}}});
