@@ -145,6 +145,72 @@ async function renderProfile(){
 async function render(){
 if(state.page==='profile'){await renderProfile();return}
 
+if(state.page==='subjects'){
+  $('#pageTitle').textContent='Subject Management';
+  const c=$('#content');
+  c.innerHTML='<div class="panel"><p class="muted">Loading subjects...</p></div>';
+  try{
+    const {data:subjects,error}=await supabaseClient.from('Subjects').select('*').order('Subject _Name');
+    if(error)throw error;
+    let editingId=null;
+    const renderSubjects=()=>{
+      const editing=subjects.find(x=>String(x.id)===String(editingId));
+      const field=(label,name,value='')=>'<label>'+label+'<input name="'+name+'" value="'+esc(value||'')+'"></label>';
+      const editor='<div class="form-card" style="margin-bottom:16px"><h3>'+(editing?'Edit subject':'Add a subject')+'</h3><form id="subjectForm" class="form-grid">'+
+        field('Subject name','subject_name',editing?.['Subject _Name'])+
+        field('Subject code','subject_code',editing?.['Subject _Code'])+
+        field('Curriculum','curriculum',editing?.Curriculum)+
+        '<div class="form-actions"><button class="btn primary" type="submit">'+(editing?'Save changes':'Add subject')+'</button>'+(editing?'<button class="btn" id="cancelSubjectEdit" type="button">Cancel</button>':'')+'</div></form></div>';
+      const rows=subjects.map(x=>'<tr><td>'+esc(x['Subject _Name']||'—')+'</td><td>'+esc(x['Subject _Code']||'—')+'</td><td>'+esc(x.Curriculum||'—')+'</td><td><button class="btn small" type="button" data-edit-subject="'+esc(x.id)+'">Edit</button> <button class="btn small" type="button" data-reassign-subject="'+esc(x.id)+'">Change lesson subject</button> <button class="btn small danger" type="button" data-delete-subject="'+esc(x.id)+'">Delete</button></td></tr>');
+      c.innerHTML='<div class="section-head"><div><h3>Subjects</h3><p>Add and maintain school subjects. Linked timetable lessons are protected.</p></div><button class="btn" id="refreshSubjects" type="button">Refresh list</button></div>'+editor+'<div class="panel" style="margin-bottom:14px"><b>'+subjects.length+'</b> subject record(s)</div>'+table(['Subject','Code','Curriculum','Actions'],rows)+'<div id="subjectReassignPanel"></div>';
+      $('#refreshSubjects').onclick=()=>render();
+      $('#cancelSubjectEdit')?.addEventListener('click',()=>{editingId=null;renderSubjects();});
+      $('#subjectForm').addEventListener('submit',async e=>{
+        e.preventDefault();const form=e.currentTarget;const button=form.querySelector('button[type="submit"]');const v=Object.fromEntries(new FormData(form));
+        const name=String(v.subject_name||'').trim();if(!name){toast('Enter a subject name.');return;}
+        const payload={'Subject _Name':name,'Subject _Code':String(v.subject_code||'').trim()||null,'Curriculum':String(v.curriculum||'').trim()||null};
+        button.disabled=true;
+        try{const result=editing?await supabaseClient.from('Subjects').update(payload).eq('id',editingId):await supabaseClient.from('Subjects').insert(payload);if(result.error)throw result.error;toast(editing?'Subject updated successfully.':'Subject added successfully.');await render();}
+        catch(err){toast('Could not save subject: '+(err.message||'Please try again.'));button.disabled=false;}
+      });
+      $('[data-edit-subject]').forEach(btn=>btn.onclick=()=>{editingId=btn.dataset.editSubject;renderSubjects();});
+      $('[data-reassign-subject]').forEach(btn=>btn.onclick=async()=>{
+        const oldId=btn.dataset.reassignSubject;const subject=subjects.find(x=>String(x.id)===oldId);const name=subject?.['Subject _Name']||'this subject';const panel=$('#subjectReassignPanel');
+        panel.innerHTML='<div class="form-card" style="margin-top:16px"><p class="muted">Loading linked lessons...</p></div>';
+        try{
+          const linked=await supabaseClient.from('School Timetable').select('id,"Day _of_week","Start _time","End_time","Class _id","Teacher _id"').eq('Subject _id',oldId).order('Day _of_week').order('Start _time');
+          if(linked.error)throw linked.error;
+          if(!linked.data.length){panel.innerHTML='<div class="form-card" style="margin-top:16px"><p>No timetable lessons are assigned to '+esc(name)+'.</p></div>';return;}
+          const [cr,tr]=await Promise.all([supabaseClient.from('Classes').select('id,"Class_Name","Stream"'),supabaseClient.from('Teachers').select('id,"First Name","Last Name"')]);
+          if(cr.error)throw cr.error;if(tr.error)throw tr.error;
+          const cm=new Map(cr.data.map(x=>[String(x.id),[x.Class_Name,x.Stream].filter(Boolean).join(' ')]));
+          const tm=new Map(tr.data.map(x=>[String(x.id),[x['First Name'],x['Last Name']].filter(Boolean).join(' ')]));
+          const options=subjects.filter(x=>String(x.id)!==oldId).map(x=>'<option value="'+esc(x.id)+'">'+esc(x['Subject _Name'])+'</option>').join('');
+          panel.innerHTML='<div class="form-card" style="margin-top:16px"><h3>Change lesson subject: '+esc(name)+'</h3><p class="muted">Choose a replacement subject for each lesson, then save that lesson.</p><div class="table-wrap"><table><thead><tr><th>Day / Time</th><th>Class</th><th>Teacher</th><th>New subject</th><th>Action</th></tr></thead><tbody>'+
+          linked.data.map(x=>'<tr><td>'+esc(x['Day _of_week']||'—')+' '+esc(String(x['Start _time']||'').slice(0,5))+'–'+esc(String(x.End_time||'').slice(0,5))+'</td><td>'+esc(cm.get(String(x['Class _id']))||'—')+'</td><td>'+esc(tm.get(String(x['Teacher _id']))||'—')+'</td><td><select data-new-subject-for="'+esc(x.id)+'">'+options+'</select></td><td><button class="btn small primary" type="button" data-save-subject-change="'+esc(x.id)+'">Save</button></td></tr>').join('')+
+          '</tbody></table></div><button class="btn" id="closeSubjectReassign" type="button" style="margin-top:12px">Close</button></div>';
+          $('#closeSubjectReassign').onclick=()=>{panel.innerHTML='';};
+          $('[data-save-subject-change]').forEach(saveBtn=>saveBtn.onclick=async()=>{
+            const lessonId=saveBtn.dataset.saveSubjectChange;const select=$('[data-new-subject-for="'+lessonId+'"]');if(!select?.value){toast('Choose a replacement subject first.');return;}
+            saveBtn.disabled=true;try{const result=await supabaseClient.from('School Timetable').update({'Subject _id':select.value}).eq('id',lessonId);if(result.error)throw result.error;toast('Lesson subject changed successfully.');await render();}
+            catch(err){toast('Could not change lesson subject: '+(err.message||'Please try again.'));saveBtn.disabled=false;}
+          });
+        }catch(err){panel.innerHTML='<div class="form-card" style="margin-top:16px"><p>Could not load linked lessons: '+esc(err.message||'Please try again.')+'</p></div>';}
+      });
+      $('[data-delete-subject]').forEach(btn=>btn.onclick=async()=>{
+        const subject=subjects.find(x=>String(x.id)===btn.dataset.deleteSubject);const name=subject?.['Subject _Name']||'this subject';btn.disabled=true;
+        try{const linked=await supabaseClient.from('School Timetable').select('id,"Day _of_week","Start _time","End_time"').eq('Subject _id',btn.dataset.deleteSubject);
+          if(linked.error)throw linked.error;
+          if(linked.data.length){const details=linked.data.map(x=>x['Day _of_week']+' '+String(x['Start _time']||'').slice(0,5)).join(', ');alert(name+' is used in '+linked.data.length+' timetable lesson(s): '+details+'. Change or remove those lessons before deleting this subject.');return;}
+          if(!confirm('Delete subject '+name+' permanently?'))return;
+          const result=await supabaseClient.from('Subjects').delete().eq('id',btn.dataset.deleteSubject);if(result.error)throw result.error;toast('Subject deleted.');await render();
+        }catch(err){toast('Could not check or delete subject: '+(err.message||'Please try again.'));}finally{btn.disabled=false;}
+      });
+    };
+    renderSubjects();
+  }catch(err){c.innerHTML='<div class="form-card"><h3>Unable to load subjects</h3><p class="muted">'+esc(err.message||'Please try again.')+'</p><button class="btn" id="retrySubjects" type="button">Try again</button></div>';$('#retrySubjects').onclick=()=>render();}
+  return;
+}
 if(state.page==='teachers'){
   $('#pageTitle').textContent='Teacher Management';
   const c=$('#content');
