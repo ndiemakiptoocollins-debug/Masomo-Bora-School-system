@@ -157,7 +157,7 @@ if(state.page==='teachers'){
       const rows=teachers.map(t=>{
         const id=String(t.id);
         const name=[t['First Name'],t['Last Name']].filter(Boolean).join(' ');
-        return '<tr><td><b>'+esc(name||'—')+'</b></td><td>'+esc(t['Tsc Number']||'—')+'</td><td>'+esc(t.Contact||'—')+'</td><td>'+esc(t.Email||'—')+'</td><td><button class="btn small" type="button" data-edit-teacher="'+esc(id)+'">Edit</button> <button class="btn small danger" type="button" data-delete-teacher="'+esc(id)+'">Delete</button></td></tr>';
+        return '<tr><td><b>'+esc(name||'—')+'</b></td><td>'+esc(t['Tsc Number']||'—')+'</td><td>'+esc(t.Contact||'—')+'</td><td>'+esc(t.Email||'—')+'</td><td><button class="btn small" type="button" data-edit-teacher="'+esc(id)+'">Edit</button> <button class="btn small" type="button" data-reassign-teacher="'+esc(id)+'">Reassign</button> <button class="btn small danger" type="button" data-delete-teacher="'+esc(id)+'">Delete</button></td></tr>';
       });
       const editing=teachers.find(t=>String(t.id)===String(editingTeacherId));
       let editor='';
@@ -176,9 +176,48 @@ if(state.page==='teachers'){
       }
       c.innerHTML='<div class="section-head"><div><h3>Teachers</h3><p>View and maintain teacher records. Changes are restricted by your administrator security policy.</p></div><button class="btn" id="refreshTeachers" type="button">Refresh list</button></div>'+
         '<div class="panel" style="margin-bottom:14px"><b>'+teachers.length+'</b> teacher record(s)</div>'+editor+
-        table(['Teacher','TSC Number','Contact','Email','Actions'],rows);
+        table(['Teacher','TSC Number','Contact','Email','Actions'],rows)+'<div id="teacherReassignPanel"></div>';
       $('#refreshTeachers').onclick=()=>render();
-      $$('[data-edit-teacher]').forEach(btn=>btn.onclick=()=>{editingTeacherId=btn.dataset.editTeacher;renderTeachers();});
+      $('[data-edit-teacher]').forEach(btn=>btn.onclick=()=>{editingTeacherId=btn.dataset.editTeacher;renderTeachers();});
+      $('[data-reassign-teacher]').forEach(btn=>btn.onclick=async()=>{
+        const oldId=btn.dataset.reassignTeacher;
+        const teacher=teachers.find(t=>String(t.id)===oldId);
+        const name=teacher?[teacher['First Name'],teacher['Last Name']].filter(Boolean).join(' '):'this teacher';
+        const panel=$('#teacherReassignPanel');
+        panel.innerHTML='<div class="form-card" style="margin-top:16px"><p class="muted">Loading linked lessons...</p></div>';
+        try{
+          const linked=await supabaseClient.from('School Timetable').select('id,"Day _of_week","Start _time","End_time","Class _id","Subject _id"').eq('Teacher _id',oldId).order('Day _of_week').order('Start _time');
+          if(linked.error)throw linked.error;
+          if(!linked.data.length){panel.innerHTML='<div class="form-card" style="margin-top:16px"><p>No timetable lessons are assigned to '+esc(name)+'.</p></div>';return;}
+          const [classResult,subjectResult]=await Promise.all([
+            supabaseClient.from('Classes').select('id,"Class_Name","Stream"'),
+            supabaseClient.from('Subjects').select('id,"Subject _Name"')
+          ]);
+          if(classResult.error)throw classResult.error;
+          if(subjectResult.error)throw subjectResult.error;
+          const classMap=new Map(classResult.data.map(x=>[String(x.id),[x.Class_Name,x.Stream].filter(Boolean).join(' ')]));
+          const subjectMap=new Map(subjectResult.data.map(x=>[String(x.id),x['Subject _Name']]));
+          const options=teachers.filter(t=>String(t.id)!==oldId).map(t=>'<option value="'+esc(t.id)+'">'+esc([t['First Name'],t['Last Name']].filter(Boolean).join(' '))+'</option>').join('');
+          panel.innerHTML='<div class="form-card" style="margin-top:16px"><h3>Reassign lessons for '+esc(name)+'</h3><p class="muted">Choose a replacement teacher for each lesson, then save that lesson.</p><div class="table-wrap"><table><thead><tr><th>Day / Time</th><th>Class</th><th>Subject</th><th>New teacher</th><th>Action</th></tr></thead><tbody>'+
+            linked.data.map(x=>'<tr><td>'+esc(x['Day _of_week']||'—')+' '+esc(String(x['Start _time']||'').slice(0,5))+'–'+esc(String(x.End_time||'').slice(0,5))+'</td><td>'+esc(classMap.get(String(x['Class _id']))||'Class')+'</td><td>'+esc(subjectMap.get(String(x['Subject _id']))||'Subject')+'</td><td><select data-new-teacher-for="'+esc(x.id)+'">'+options+'</select></td><td><button class="btn small primary" type="button" data-save-reassignment="'+esc(x.id)+'">Save</button></td></tr>').join('')+
+            '</tbody></table></div><button class="btn" type="button" id="closeTeacherReassign" style="margin-top:12px">Close</button></div>';
+          $('#closeTeacherReassign').onclick=()=>{panel.innerHTML='';};
+          $('[data-save-reassignment]').forEach(saveBtn=>saveBtn.onclick=async()=>{
+            const lessonId=saveBtn.dataset.saveReassignment;
+            const select=$('[data-new-teacher-for="'+lessonId+'"]');
+            const newTeacherId=select?.value;
+            if(!newTeacherId){toast('Choose another teacher first.');return;}
+            saveBtn.disabled=true;
+            try{
+              const result=await supabaseClient.from('School Timetable').update({'Teacher _id':newTeacherId}).eq('id',lessonId);
+              if(result.error)throw result.error;
+              toast('Lesson reassigned successfully.');
+              await render();
+            }catch(err){toast('Could not reassign lesson: '+(err.message||'Please try again.'));saveBtn.disabled=false;}
+          });
+        }catch(err){panel.innerHTML='<div class="form-card" style="margin-top:16px"><p>Could not load linked lessons: '+esc(err.message||'Please try again.')+'</p></div>';}
+      });
+
       $('#cancelTeacherEdit')?.addEventListener('click',()=>{editingTeacherId=null;renderTeachers();});
       $('#editTeacherForm')?.addEventListener('submit',async e=>{
         e.preventDefault();
