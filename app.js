@@ -178,8 +178,8 @@ if(state.page==='teachers'){
         '<div class="panel" style="margin-bottom:14px"><b>'+teachers.length+'</b> teacher record(s)</div>'+editor+
         table(['Teacher','TSC Number','Contact','Email','Actions'],rows)+'<div id="teacherReassignPanel"></div>';
       $('#refreshTeachers').onclick=()=>render();
-      $('[data-edit-teacher]').forEach(btn=>btn.onclick=()=>{editingTeacherId=btn.dataset.editTeacher;renderTeachers();});
-      $('[data-reassign-teacher]').forEach(btn=>btn.onclick=async()=>{
+      $$('[data-edit-teacher]').forEach(btn=>btn.onclick=()=>{editingTeacherId=btn.dataset.editTeacher;renderTeachers();});
+      $$('[data-reassign-teacher]').forEach(btn=>btn.onclick=async()=>{
         const oldId=btn.dataset.reassignTeacher;
         const teacher=teachers.find(t=>String(t.id)===oldId);
         const name=teacher?[teacher['First Name'],teacher['Last Name']].filter(Boolean).join(' '):'this teacher';
@@ -202,7 +202,7 @@ if(state.page==='teachers'){
             linked.data.map(x=>'<tr><td>'+esc(x['Day _of_week']||'—')+' '+esc(String(x['Start _time']||'').slice(0,5))+'–'+esc(String(x.End_time||'').slice(0,5))+'</td><td>'+esc(classMap.get(String(x['Class _id']))||'Class')+'</td><td>'+esc(subjectMap.get(String(x['Subject _id']))||'Subject')+'</td><td><select data-new-teacher-for="'+esc(x.id)+'">'+options+'</select></td><td><button class="btn small primary" type="button" data-save-reassignment="'+esc(x.id)+'">Save</button></td></tr>').join('')+
             '</tbody></table></div><button class="btn" type="button" id="closeTeacherReassign" style="margin-top:12px">Close</button></div>';
           $('#closeTeacherReassign').onclick=()=>{panel.innerHTML='';};
-          $('[data-save-reassignment]').forEach(saveBtn=>saveBtn.onclick=async()=>{
+          $$('[data-save-reassignment]').forEach(saveBtn=>saveBtn.onclick=async()=>{
             const lessonId=saveBtn.dataset.saveReassignment;
             const select=$('[data-new-teacher-for="'+lessonId+'"]');
             const newTeacherId=select?.value;
