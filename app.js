@@ -11,7 +11,7 @@ async function refresh(){state.data=await api('/bootstrap');}
 function showApp(){ $('#login').classList.add('hidden');$('#app').classList.remove('hidden');const email=state.user.email||'Administrator';$('#userName').textContent=email;$('#profileEmail').textContent=email;$('#userRole').textContent='ACCOUNT';$('#profileAvatar').textContent=(email[0]||'A').toUpperCase();$('#profileMenu').open=false;$('#content').innerHTML=`<div class="panel"><h3>Welcome to Masomo Bora</h3><p>Your administrator account has signed in successfully.</p><p class="muted">Your secure sign-in is connected. We are now building the school database features and connecting each dashboard section one at a time.</p><div class="quick-grid"><button type="button" class="tile" id="openClassTimetable" style="text-align:left;cursor:pointer"><span class="ico">▦</span><b>Class timetable</b><small>Open saved school timetable</small></button><div class="tile"><span class="ico">▤</span><b>Report cards</b><small>Coming after timetable</small></div></div></div>`;$('#openClassTimetable').addEventListener('click',()=>go('timetable'));}
 window.__masomoOpenDashboard=user=>{state.user=user;showApp();};
 function go(page){state.page=page;$$('.nav').forEach(b=>b.classList.toggle('active',b.dataset.page===page));render();}
-$('#nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b){e.preventDefault();document.querySelector('.sidebar').classList.remove('sidebar-open');$('#sidebarBackdrop').classList.remove('show');$('#menuToggle').setAttribute('aria-expanded','false');if(['users','timetable'].includes(b.dataset.page)){go(b.dataset.page)}else{toast('This section is being connected. Users & Staff and Timetable are now available.')}}});
+$('#nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b){e.preventDefault();document.querySelector('.sidebar').classList.remove('sidebar-open');$('#sidebarBackdrop').classList.remove('show');$('#menuToggle').setAttribute('aria-expanded','false');if(['users','teachers','timetable'].includes(b.dataset.page)){go(b.dataset.page)}else{toast('This section is being connected. Users & Staff and Timetable are now available.')}}});
 
 const themeSelect=$('#themeSelect');
 const applyTheme=mode=>{
@@ -144,6 +144,85 @@ async function renderProfile(){
 
 async function render(){
 if(state.page==='profile'){await renderProfile();return}
+
+if(state.page==='teachers'){
+  $('#pageTitle').textContent='Teacher Management';
+  const c=$('#content');
+  c.innerHTML='<div class="panel"><p class="muted">Loading teacher records...</p></div>';
+  try{
+    const {data:teachers,error}=await supabaseClient.from('Teachers').select('*').order('First Name');
+    if(error)throw error;
+    let editingTeacherId=null;
+    const renderTeachers=()=>{
+      const rows=teachers.map(t=>{
+        const id=String(t.id);
+        const name=[t['First Name'],t['Last Name']].filter(Boolean).join(' ');
+        return '<tr><td><b>'+esc(name||'—')+'</b></td><td>'+esc(t['Tsc Number']||'—')+'</td><td>'+esc(t.Contact||'—')+'</td><td>'+esc(t.Email||'—')+'</td><td><button class="btn small" type="button" data-edit-teacher="'+esc(id)+'">Edit</button> <button class="btn small danger" type="button" data-delete-teacher="'+esc(id)+'">Delete</button></td></tr>';
+      });
+      const editing=teachers.find(t=>String(t.id)===String(editingTeacherId));
+      let editor='';
+      if(editing){
+        const field=(label,name,value,type='text')=>'<label>'+label+'<input name="'+name+'" type="'+type+'" value="'+esc(value||'')+'"></label>';
+        editor='<div class="form-card" style="margin-bottom:16px"><h3>Edit teacher details</h3><form id="editTeacherForm" class="form-grid">'+
+          field('TSC Number','tsc_number',editing['Tsc Number'])+
+          field('First Name','first_name',editing['First Name'])+
+          field('Last Name','last_name',editing['Last Name'])+
+          '<label>Gender<select name="gender"><option value="">Select...</option><option value="Male" '+(editing.Gender==='Male'?'selected':'')+'>Male</option><option value="Female" '+(editing.Gender==='Female'?'selected':'')+'>Female</option><option value="Other" '+(editing.Gender==='Other'?'selected':'')+'>Other</option></select></label>'+
+          field('Contact','contact',editing.Contact,'tel')+
+          field('Email','email',editing.Email,'email')+
+          field('Qualification','qualification',editing.Qualification)+
+          field('Employment Date','employment_date',String(editing['Employment Date']||'').slice(0,10),'date')+
+          '<div class="form-actions"><button class="btn primary" type="submit">Save changes</button><button class="btn" id="cancelTeacherEdit" type="button">Cancel</button></div></form></div>';
+      }
+      c.innerHTML='<div class="section-head"><div><h3>Teachers</h3><p>View and maintain teacher records. Changes are restricted by your administrator security policy.</p></div><button class="btn" id="refreshTeachers" type="button">Refresh list</button></div>'+
+        '<div class="panel" style="margin-bottom:14px"><b>'+teachers.length+'</b> teacher record(s)</div>'+editor+
+        table(['Teacher','TSC Number','Contact','Email','Actions'],rows);
+      $('#refreshTeachers').onclick=()=>render();
+      $('[data-edit-teacher]').forEach(btn=>btn.onclick=()=>{editingTeacherId=btn.dataset.editTeacher;renderTeachers();});
+      $('#cancelTeacherEdit')?.addEventListener('click',()=>{editingTeacherId=null;renderTeachers();});
+      $('#editTeacherForm')?.addEventListener('submit',async e=>{
+        e.preventDefault();
+        const form=e.currentTarget,button=form.querySelector('button[type="submit"]');
+        const values=Object.fromEntries(new FormData(form));
+        const payload={
+          'Tsc Number':String(values.tsc_number||'').trim()||null,
+          'First Name':String(values.first_name||'').trim(),
+          'Last Name':String(values.last_name||'').trim(),
+          'Gender':String(values.gender||'').trim()||null,
+          'Contact':String(values.contact||'').trim()||null,
+          'Email':String(values.email||'').trim()||null,
+          'Qualification':String(values.qualification||'').trim()||null,
+          'Employment Date':String(values.employment_date||'').trim()||null
+        };
+        if(!payload['First Name']||!payload['Last Name']){toast('First name and last name are required.');return;}
+        button.disabled=true;
+        try{
+          const result=await supabaseClient.from('Teachers').update(payload).eq('id',editingTeacherId).select().single();
+          if(result.error)throw result.error;
+          toast('Teacher details updated successfully.');
+          await render();
+        }catch(err){toast('Could not update teacher: '+(err.message||'Please try again.'));button.disabled=false;}
+      });
+      $('[data-delete-teacher]').forEach(btn=>btn.onclick=async()=>{
+        const teacher=teachers.find(t=>String(t.id)===btn.dataset.deleteTeacher);
+        const name=teacher?[teacher['First Name'],teacher['Last Name']].filter(Boolean).join(' '):'this teacher';
+        if(!confirm('Delete '+name+' permanently? Any timetable lessons linked to this teacher may prevent deletion.'))return;
+        btn.disabled=true;
+        try{
+          const result=await supabaseClient.from('Teachers').delete().eq('id',btn.dataset.deleteTeacher);
+          if(result.error)throw result.error;
+          toast('Teacher record deleted.');
+          await render();
+        }catch(err){toast('Could not delete teacher: '+(err.message||'Please check linked timetable records.'));btn.disabled=false;}
+      });
+    };
+    renderTeachers();
+  }catch(err){
+    c.innerHTML='<div class="form-card"><h3>Unable to load teachers</h3><p class="muted">'+esc(err.message||'Please try again.')+'</p><button class="btn" id="retryTeachers" type="button">Try again</button></div>';
+    $('#retryTeachers').onclick=()=>render();
+  }
+  return;
+}
 if(state.page==='users'){
   $('#pageTitle').textContent='Users & Staff';
   const c=$('#content');
