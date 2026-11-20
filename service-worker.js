@@ -1,4 +1,4 @@
-const CACHE='masomo-bora-shell-v24';
+const CACHE='masomo-bora-shell-v25';
 const BASE=self.registration.scope;
 const SHELL=['','index.html','style.css','app.js','manifest.webmanifest'].map(path=>new URL(path,BASE).toString());
 
