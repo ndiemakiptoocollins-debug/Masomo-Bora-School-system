@@ -1,13 +1,3 @@
-// Show startup/runtime errors on the login screen so they can be diagnosed on mobile.
-window.addEventListener('error',event=>{
-  const box=document.getElementById('loginError');
-  if(box)box.textContent='App startup error: '+(event.message||'A script failed to run.');
-});
-window.addEventListener('unhandledrejection',event=>{
-  const box=document.getElementById('loginError');
-  const reason=event.reason;
-  if(box)box.textContent='App error: '+(reason&&reason.message?reason.message:String(reason||'An operation failed.'));
-});
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 let state={user:null,data:null,page:'dashboard'};
 const api=async(url,opts={})=>{const r=await fetch('/api'+url,{headers:{'Content-Type':'application/json'},...opts});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Request failed');return d};
@@ -21,7 +11,7 @@ async function refresh(){state.data=await api('/bootstrap');}
 function showApp(){ $('#login').classList.add('hidden');$('#app').classList.remove('hidden');const email=state.user.email||'Administrator';$('#userName').textContent=email;$('#profileEmail').textContent=email;$('#userRole').textContent='ACCOUNT';$('#profileAvatar').textContent=(email[0]||'A').toUpperCase();$('#profileMenu').open=false;$('#content').innerHTML=`<div class="panel"><h3>Welcome to Masomo Bora</h3><p>Your administrator account has signed in successfully.</p><p class="muted">Your secure sign-in is connected. We are now building the school database features and connecting each dashboard section one at a time.</p><div class="quick-grid"><button type="button" class="tile" id="openClassTimetable" style="text-align:left;cursor:pointer"><span class="ico">▦</span><b>Class timetable</b><small>Open saved school timetable</small></button><div class="tile"><span class="ico">▤</span><b>Report cards</b><small>Coming after timetable</small></div></div></div>`;$('#openClassTimetable').addEventListener('click',()=>go('timetable'));}
 window.__masomoOpenDashboard=user=>{state.user=user;showApp();};
 function go(page){state.page=page;$$('.nav').forEach(b=>b.classList.toggle('active',b.dataset.page===page));render();}
-$('#nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b){e.preventDefault();document.querySelector('.sidebar').classList.remove('sidebar-open');$('#sidebarBackdrop').classList.remove('show');$('#menuToggle').setAttribute('aria-expanded','false');if(['users','teachers','timetable'].includes(b.dataset.page)){go(b.dataset.page)}else{toast('This section is being connected. Users & Staff and Timetable are now available.')}}});
+$('#nav').addEventListener('click',e=>{let b=e.target.closest('[data-page]');if(b){e.preventDefault();document.querySelector('.sidebar').classList.remove('sidebar-open');$('#sidebarBackdrop').classList.remove('show');$('#menuToggle').setAttribute('aria-expanded','false');if(['users','timetable'].includes(b.dataset.page)){go(b.dataset.page)}else{toast('This section is being connected. Users & Staff and Timetable are now available.')}}});
 
 const themeSelect=$('#themeSelect');
 const applyTheme=mode=>{
@@ -153,93 +143,6 @@ async function renderProfile(){
 }
 
 async function render(){
-if(state.page==='teachers'){
-  $('#pageTitle').textContent='Teacher Records';
-  const c=$('#content');
-  c.innerHTML='<div class="panel"><p class="muted">Loading teacher records...</p></div>';
-  try{
-    const result=await supabaseClient.from('Teachers').select('*').order('id');
-    if(result.error)throw result.error;
-    let teacherRows=result.data||[];
-    let editingTeacherId=null;
-    const renderTeachers=()=>{
-      const editing=teacherRows.find(t=>String(t.id)===String(editingTeacherId));
-      let editor='';
-      if(editing){
-        editor='<div class="form-card" style="margin-bottom:16px"><h3>Edit teacher details</h3><form id="editTeacherForm" class="form-grid">'+
-          '<label>TSC Number<input name="tsc_number" value="'+esc(editing['Tsc Number']||'')+'"></label>'+
-          '<label>First Name<input name="first_name" value="'+esc(editing['First Name']||'')+'" required></label>'+
-          '<label>Last Name<input name="last_name" value="'+esc(editing['Last Name']||'')+'"></label>'+
-          '<label>Gender<input name="gender" value="'+esc(editing.Gender||'')+'"></label>'+
-          '<label>Contact<input name="contact" type="tel" value="'+esc(editing.Contact||'')+'"></label>'+
-          '<label>Email<input name="email" type="email" value="'+esc(editing.Email||'')+'"></label>'+
-          '<label>Qualification<input name="qualification" value="'+esc(editing.Qualification||'')+'"></label>'+
-          '<label>Employment Date<input name="employment_date" type="date" value="'+esc(editing['Employment Date']||'')+'"></label>'+
-          '<div class="form-actions"><button class="btn primary" type="submit">Save changes</button><button class="btn" id="cancelTeacherEdit" type="button">Cancel</button></div></form></div>';
-      }
-      c.innerHTML='<div class="section-head"><div><h3>Teachers</h3><p>View, edit or remove teacher records.</p></div><button class="btn" id="refreshTeachers" type="button">Refresh</button></div>'+
-        '<div class="panel" style="margin-bottom:16px"><b>'+teacherRows.length+'</b> teacher record(s)</div>'+editor+
-        table(['TSC Number','First Name','Last Name','Gender','Contact','Email','Qualification','Employment Date','Actions'],teacherRows.map(t=>
-          '<tr><td>'+esc(t['Tsc Number']||'—')+'</td><td><b>'+esc(t['First Name']||'—')+'</b></td><td>'+esc(t['Last Name']||'—')+'</td><td>'+esc(t.Gender||'—')+'</td><td>'+esc(t.Contact||'—')+'</td><td>'+esc(t.Email||'—')+'</td><td>'+esc(t.Qualification||'—')+'</td><td>'+esc(t['Employment Date']||'—')+'</td><td><button class="btn small" type="button" data-edit-teacher="'+esc(t.id)+'">Edit</button> <button class="btn small danger" type="button" data-delete-teacher="'+esc(t.id)+'">Delete</button></td></tr>'
-        )));
-      $('#refreshTeachers').onclick=()=>render();
-      $('[data-edit-teacher]').forEach(button=>button.onclick=()=>{editingTeacherId=button.dataset.editTeacher;renderTeachers();});
-      $('#cancelTeacherEdit')?.addEventListener('click',()=>{editingTeacherId=null;renderTeachers();});
-      $('#editTeacherForm')?.addEventListener('submit',async e=>{
-        e.preventDefault();
-        const form=e.currentTarget;
-        const button=form.querySelector('button[type="submit"]');
-        const values=Object.fromEntries(new FormData(form));
-        const payload={
-          'Tsc Number':String(values.tsc_number||'').trim()||null,
-          'First Name':String(values.first_name||'').trim(),
-          'Last Name':String(values.last_name||'').trim()||null,
-          'Gender':String(values.gender||'').trim()||null,
-          'Contact':String(values.contact||'').trim()||null,
-          'Email':String(values.email||'').trim()||null,
-          'Qualification':String(values.qualification||'').trim()||null,
-          'Employment Date':String(values.employment_date||'').trim()||null
-        };
-        if(!payload['First Name']){toast('First name is required.');return;}
-        button.disabled=true;
-        try{
-          const saved=await supabaseClient.from('Teachers').update(payload).eq('id',editingTeacherId);
-          if(saved.error)throw saved.error;
-          editingTeacherId=null;
-          toast('Teacher details updated successfully.');
-          const fresh=await supabaseClient.from('Teachers').select('*').order('id');
-          if(fresh.error)throw fresh.error;
-          teacherRows=fresh.data||[];
-          renderTeachers();
-        }catch(err){toast('Could not update teacher: '+(err.message||'Please try again.'));button.disabled=false;}
-      });
-      $('[data-delete-teacher]').forEach(button=>button.onclick=async()=>{
-        const teacher=teacherRows.find(t=>String(t.id)===button.dataset.deleteTeacher);
-        const name=[teacher?.['First Name'],teacher?.['Last Name']].filter(Boolean).join(' ')||'this teacher';
-        if(!confirm('Permanently delete the record for '+name+'? This cannot be undone.'))return;
-        button.disabled=true;
-        try{
-          const removed=await supabaseClient.from('Teachers').delete().eq('id',button.dataset.deleteTeacher);
-          if(removed.error)throw removed.error;
-          toast('Teacher record deleted.');
-          const fresh=await supabaseClient.from('Teachers').select('*').order('id');
-          if(fresh.error)throw fresh.error;
-          teacherRows=fresh.data||[];
-          editingTeacherId=null;
-          renderTeachers();
-        }catch(err){
-          toast('Could not delete teacher. They may be linked to timetable lessons. '+(err.message||''));
-          button.disabled=false;
-        }
-      });
-    };
-    renderTeachers();
-  }catch(err){
-    c.innerHTML='<div class="form-card"><h3>Unable to load teachers</h3><p class="muted">'+esc(err.message||'Please try again.')+'</p><button class="btn" id="retryTeachers" type="button">Try again</button></div>';
-    $('#retryTeachers').onclick=()=>render();
-  }
-  return;
-}
 if(state.page==='profile'){await renderProfile();return}
 if(state.page==='users'){
   $('#pageTitle').textContent='Users & Staff';
