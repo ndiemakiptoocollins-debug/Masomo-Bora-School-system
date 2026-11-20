@@ -46,8 +46,8 @@ const applyTheme=mode=>{
   document.documentElement.dataset.theme=(mode==='system'?(systemLight?'light':'dark'):mode);
   if(themeSelect)themeSelect.value=mode;
 };
-let savedTheme='system';
-try{savedTheme=localStorage.getItem('masomo-bora-theme')||'system'}catch(e){}
+let savedTheme='light';
+try{savedTheme=localStorage.getItem('masomo-bora-theme')||'light'}catch(e){}
 applyTheme(savedTheme);
 if(themeSelect)themeSelect.addEventListener('change',()=>{
   savedTheme=themeSelect.value;
@@ -200,8 +200,8 @@ if(state.page==='subjects'){
         try{const result=editing?await supabaseClient.from('Subjects').update(payload).eq('id',editingId):await supabaseClient.from('Subjects').insert(payload);if(result.error)throw result.error;toast(editing?'Subject updated successfully.':'Subject added successfully.');await render();}
         catch(err){toast('Could not save subject: '+(err.message||'Please try again.'));button.disabled=false;}
       });
-      $('[data-edit-subject]').forEach(btn=>btn.onclick=()=>{editingId=btn.dataset.editSubject;renderSubjects();});
-      $('[data-reassign-subject]').forEach(btn=>btn.onclick=async()=>{
+      $$('[data-edit-subject]').forEach(btn=>btn.onclick=()=>{editingId=btn.dataset.editSubject;renderSubjects();});
+      $$('[data-reassign-subject]').forEach(btn=>btn.onclick=async()=>{
         const oldId=btn.dataset.reassignSubject;const subject=subjects.find(x=>String(x.id)===oldId);const name=subject?.['Subject _Name']||'this subject';const panel=$('#subjectReassignPanel');
         panel.innerHTML='<div class="form-card" style="margin-top:16px"><p class="muted">Loading linked lessons...</p></div>';
         try{
@@ -217,14 +217,14 @@ if(state.page==='subjects'){
           linked.data.map(x=>'<tr><td>'+esc(x['Day _of_week']||'—')+' '+esc(String(x['Start _time']||'').slice(0,5))+'–'+esc(String(x.End_time||'').slice(0,5))+'</td><td>'+esc(cm.get(String(x['Class _id']))||'—')+'</td><td>'+esc(tm.get(String(x['Teacher _id']))||'—')+'</td><td><select data-new-subject-for="'+esc(x.id)+'">'+options+'</select></td><td><button class="btn small primary" type="button" data-save-subject-change="'+esc(x.id)+'">Save</button></td></tr>').join('')+
           '</tbody></table></div><button class="btn" id="closeSubjectReassign" type="button" style="margin-top:12px">Close</button></div>';
           $('#closeSubjectReassign').onclick=()=>{panel.innerHTML='';};
-          $('[data-save-subject-change]').forEach(saveBtn=>saveBtn.onclick=async()=>{
+          $$('[data-save-subject-change]').forEach(saveBtn=>saveBtn.onclick=async()=>{
             const lessonId=saveBtn.dataset.saveSubjectChange;const select=$('[data-new-subject-for="'+lessonId+'"]');if(!select?.value){toast('Choose a replacement subject first.');return;}
             saveBtn.disabled=true;try{const result=await supabaseClient.from('School Timetable').update({'Subject _id':select.value}).eq('id',lessonId);if(result.error)throw result.error;toast('Lesson subject changed successfully.');await render();}
             catch(err){toast('Could not change lesson subject: '+(err.message||'Please try again.'));saveBtn.disabled=false;}
           });
         }catch(err){panel.innerHTML='<div class="form-card" style="margin-top:16px"><p>Could not load linked lessons: '+esc(err.message||'Please try again.')+'</p></div>';}
       });
-      $('[data-delete-subject]').forEach(btn=>btn.onclick=async()=>{
+      $$('[data-delete-subject]').forEach(btn=>btn.onclick=async()=>{
         const subject=subjects.find(x=>String(x.id)===btn.dataset.deleteSubject);const name=subject?.['Subject _Name']||'this subject';btn.disabled=true;
         try{const linked=await supabaseClient.from('School Timetable').select('id,"Day _of_week","Start _time","End_time"').eq('Subject _id',btn.dataset.deleteSubject);
           if(linked.error)throw linked.error;
