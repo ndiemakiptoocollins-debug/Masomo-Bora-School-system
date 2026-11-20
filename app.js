@@ -13,28 +13,21 @@ function showApp(){
  const email=state.user.email||'Administrator';
  $('#userName').textContent=email;$('#profileEmail').textContent=email;$('#userRole').textContent='ACCOUNT';
  $('#profileAvatar').textContent=(email[0]||'A').toUpperCase();$('#profileMenu').open=false;
- const liveModules=[
-  {page:'timetable',icon:'▦',title:'Timetable Management',desc:'View and manage class lessons',tone:'blue'},
-  {page:'subjects',icon:'▣',title:'Subject Management',desc:'Maintain school subjects',tone:'teal'},
-  {page:'teachers',icon:'♙',title:'Teacher Management',desc:'Manage staff and allocations',tone:'violet'},
-  {page:'users',icon:'♧',title:'Users & Staff',desc:'Manage system accounts',tone:'gold'}
- ];
- const comingModules=[
-  {icon:'♙',title:'Learner Management',desc:'Registration, learner profiles and ID cards'},
-  {icon:'▤',title:'Classes & Streams',desc:'Organize classes and class lists'},
-  {icon:'KSh',title:'Finance Management',desc:'Fees, payments and receipts'},
-  {icon:'◷',title:'Attendance',desc:'Daily learner and staff attendance'},
-  {icon:'▧',title:'Exams & Results',desc:'Assessments, marks and report cards'},
-  {icon:'▥',title:'Reports & Documents',desc:'School reports and printable documents'}
- ];
- $('#content').innerHTML=
-  '<section class="dashboard-hero"><div><span class="hero-kicker">SCHOOL MANAGEMENT PLATFORM</span><h2>Welcome to Masomo Bora</h2><p>Your school operations, organized in one place.</p></div><div class="hero-emblem">MB</div></section>'+
-  '<div class="section-head dashboard-section-head"><div><h3>Quick access</h3><p>Open an available management section.</p></div></div>'+
-  '<div class="dashboard-grid">'+liveModules.map(m=>'<button type="button" class="module-card '+m.tone+'" data-dashboard-page="'+m.page+'"><span class="module-icon">'+m.icon+'</span><span class="module-title">'+m.title+'</span><span class="module-desc">'+m.desc+'</span><span class="module-link">Open section →</span></button>').join('')+'</div>'+
-  '<div class="section-head dashboard-section-head coming-head"><div><h3>More school modules</h3><p>Planned for upcoming development phases.</p></div></div>'+
-  '<div class="coming-grid">'+comingModules.map(m=>'<div class="coming-card"><span class="coming-icon">'+m.icon+'</span><div><b>'+m.title+'</b><small>'+m.desc+'</small></div><span class="coming-label">Coming soon</span></div>').join('')+'</div>'+
-  '<div class="dashboard-note"><span>✦</span><div><b>Built for every school</b><small>Each school will be able to add its own name, logo and colours.</small></div></div>';
- $('[data-dashboard-page]').forEach(button=>button.addEventListener('click',()=>go(button.dataset.dashboardPage)));
+ $('#pageTitle').textContent='School Overview';
+ const c=$('#content');
+ c.innerHTML='<section class="analytics-welcome"><div><span class="analytics-kicker">SCHOOL MANAGEMENT OVERVIEW</span><h2>Good day, welcome back!</h2><p>Here is a snapshot of your school operations.</p></div><div class="welcome-mark">MB</div></section>'+
+ '<div class="analytics-section-title"><div><h3>School at a glance</h3><p>Live figures from your school records</p></div><span class="live-indicator"><i></i> Data overview</span></div>'+
+ '<div class="analytics-stats" id="analyticsStats"><div class="analytics-stat"><span class="analytics-stat-icon aqua">♙</span><div><small>Registered learners</small><strong>—</strong><em>Not yet connected</em></div></div><div class="analytics-stat"><span class="analytics-stat-icon mint">♧</span><div><small>Teachers</small><strong>—</strong><em>Loading records</em></div></div><div class="analytics-stat"><span class="analytics-stat-icon violet">▤</span><div><small>Classes</small><strong>—</strong><em>Loading records</em></div></div><div class="analytics-stat"><span class="analytics-stat-icon amber">▦</span><div><small>Timetable lessons</small><strong>—</strong><em>Loading records</em></div></div></div>'+
+ '<div class="analytics-layout"><div class="analytics-main-column">'+
+ '<section class="analytics-panel"><div class="analytics-panel-heading"><div><h3>Weekly timetable activity</h3><p>Lessons arranged across the school week</p></div><span class="chart-tag">By day</span></div><div id="weeklyChart" class="weekly-chart"><div class="chart-loading">Loading timetable activity...</div></div></section>'+
+ '<section class="analytics-panel"><div class="analytics-panel-heading"><div><h3>Subject allocation</h3><p>Subjects currently linked to timetable lessons</p></div><span class="chart-tag">By subject</span></div><div id="subjectChart" class="subject-chart"><div class="chart-loading">Loading subject allocation...</div></div></section>'+
+ '</div><aside class="analytics-side-column">'+
+ '<section class="analytics-panel overview-panel"><div class="analytics-panel-heading"><div><h3>School setup</h3><p>Current system records</p></div><span class="panel-dots">•••</span></div><div id="schoolSnapshot" class="snapshot-list"><div class="snapshot-row"><span class="snapshot-dot teal"></span><span>Teachers</span><b>—</b></div><div class="snapshot-row"><span class="snapshot-dot blue"></span><span>Classes</span><b>—</b></div><div class="snapshot-row"><span class="snapshot-dot violet"></span><span>Subjects</span><b>—</b></div><div class="snapshot-row"><span class="snapshot-dot amber"></span><span>Timetable lessons</span><b>—</b></div></div></section>'+
+ '<section class="analytics-panel quick-actions-panel"><div class="analytics-panel-heading"><div><h3>Quick access</h3><p>Frequently used sections</p></div></div><div class="analytics-action-list"><button type="button" data-dashboard-page="timetable"><span class="action-symbol aqua">▦</span><span><b>Timetable</b><small>View and edit lessons</small></span><i>›</i></button><button type="button" data-dashboard-page="subjects"><span class="action-symbol mint">▣</span><span><b>Subjects</b><small>Manage school subjects</small></span><i>›</i></button><button type="button" data-dashboard-page="teachers"><span class="action-symbol violet">♙</span><span><b>Teachers</b><small>Manage staff records</small></span><i>›</i></button><button type="button" data-dashboard-page="users"><span class="action-symbol amber">♧</span><span><b>Users & Staff</b><small>Manage system accounts</small></span><i>›</i></button></div></section>'+
+ '<section class="analytics-note"><span>✦</span><div><b>Designed for every school</b><small>Schools will be able to add their own logo, name and colours.</small></div></section>'+
+ '</aside></div>';
+ $$('[data-dashboard-page]').forEach(button=>button.addEventListener('click',()=>go(button.dataset.dashboardPage)));
+ loadDashboardAnalytics();
 }
 window.__masomoOpenDashboard=user=>{state.user=user;showApp();};
 function go(page){state.page=page;$$('.nav').forEach(b=>b.classList.toggle('active',b.dataset.page===page));render();}
@@ -167,6 +160,42 @@ async function renderProfile(){
     c.innerHTML=`<div class="form-card"><h3>Unable to load profile</h3><p class="muted">${esc(err.message||'Please try again.')}</p><button class="btn" id="retryProfile">Try again</button></div>`;
     $('#retryProfile').onclick=renderProfile;
   }
+}
+
+
+async function loadDashboardAnalytics(){
+ const statBox=$('#analyticsStats'),weekly=$('#weeklyChart'),subjectBox=$('#subjectChart'),snapshot=$('#schoolSnapshot');
+ const fmt=n=>Number(n||0).toLocaleString();
+ const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+ try{
+  const [teachers,classes,subjects,lessons]=await Promise.all([
+   supabaseClient.from('Teachers').select('id',{count:'exact',head:true}),
+   supabaseClient.from('Classes').select('id',{count:'exact',head:true}),
+   supabaseClient.from('Subjects').select('id,"Subject _Name"'),
+   supabaseClient.from('School Timetable').select('id,"Day _of_week","Subject _id"')
+  ]);
+  for(const r of [teachers,classes,subjects,lessons])if(r.error)throw r.error;
+  const subjectRows=subjects.data||[],lessonRows=lessons.data||[];
+  const stats=[
+   {label:'Registered learners',value:'—',hint:'Learner module not connected yet',icon:'♙',tone:'aqua'},
+   {label:'Teachers',value:fmt(teachers.count),hint:'Teacher records',icon:'♧',tone:'mint'},
+   {label:'Classes',value:fmt(classes.count),hint:'Class records',icon:'▤',tone:'violet'},
+   {label:'Timetable lessons',value:fmt(lessons.count),hint:'Scheduled lessons',icon:'▦',tone:'amber'}
+  ];
+  statBox.innerHTML=stats.map(x=>'<div class="analytics-stat"><span class="analytics-stat-icon '+x.tone+'">'+x.icon+'</span><div><small>'+x.label+'</small><strong>'+x.value+'</strong><em>'+x.hint+'</em></div></div>').join('');
+  snapshot.innerHTML=[['Teachers',teachers.count,'teal'],['Classes',classes.count,'blue'],['Subjects',subjectRows.length,'violet'],['Timetable lessons',lessonRows.length,'amber']].map(x=>'<div class="snapshot-row"><span class="snapshot-dot '+x[2]+'"></span><span>'+x[0]+'</span><b>'+fmt(x[1])+'</b></div>').join('');
+  const dayCounts=days.map(day=>({day,count:lessonRows.filter(x=>String(x['Day _of_week']||'').toLowerCase()===day.toLowerCase()).length}));
+  const maxDay=Math.max(1,...dayCounts.map(x=>x.count));
+  weekly.innerHTML=dayCounts.every(x=>x.count===0)?'<div class="chart-empty">No timetable lessons have been recorded yet.</div>':'<div class="bar-chart">'+dayCounts.map(x=>'<div class="bar-column"><div class="bar-value">'+x.count+'</div><div class="bar-track"><span style="height:'+Math.max(5,Math.round(x.count/maxDay*100))+'%"></span></div><small>'+x.day.slice(0,3)+'</small></div>').join('')+'</div><div class="chart-footnote"><span><i class="legend-dot"></i> Scheduled lessons</span><b>'+fmt(lessonRows.length)+' total</b></div>';
+  const subjectCounts=subjectRows.map(s=>({name:s['Subject _Name']||'Unnamed subject',count:lessonRows.filter(l=>String(l['Subject _id'])===String(s.id)).length})).sort((a,b)=>b.count-a.count);
+  const maxSubject=Math.max(1,...subjectCounts.map(x=>x.count));
+  subjectBox.innerHTML=subjectCounts.length?subjectCounts.map((x,i)=>'<div class="subject-bar-row"><div><span>'+x.name+'</span><b>'+x.count+'</b></div><div class="subject-bar-track"><span class="subject-fill fill-'+(i%5)+'" style="width:'+Math.max(x.count?3:0,x.count/maxSubject*100)+'%"></span></div></div>').join(''):'<div class="chart-empty">No subjects have been added yet.</div>';
+ }catch(err){
+  statBox.innerHTML='<div class="analytics-load-error">School figures could not be loaded. '+(err.message||'Please refresh the page.')+'</div>';
+  weekly.innerHTML='<div class="chart-empty">Timetable summary is temporarily unavailable.</div>';
+  subjectBox.innerHTML='<div class="chart-empty">Subject summary is temporarily unavailable.</div>';
+  snapshot.innerHTML='<div class="chart-empty">School records are temporarily unavailable.</div>';
+ }
 }
 
 async function render(){
