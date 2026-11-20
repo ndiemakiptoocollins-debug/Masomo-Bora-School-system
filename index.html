@@ -120,7 +120,8 @@
       const result=await client.auth.signInWithPassword({email,password});
       if(result.error)throw result.error;
       message.textContent='Sign-in successful. Opening your dashboard...';
-      window.location.reload();
+      if(typeof window.__masomoOpenDashboard==='function')window.__masomoOpenDashboard(result.data.user);
+      else message.textContent='Sign-in succeeded, but the dashboard script did not finish loading. Please contact the app administrator.';
     }catch(error){
       message.textContent=error&&error.message?error.message:'Unable to sign in. Please try again.';
     }finally{if(button)button.disabled=false;}
