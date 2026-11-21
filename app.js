@@ -582,6 +582,12 @@ else if(p==='timetable'){
     const jssSubjectIds={MATH:1,ENG:2,KISW:3,ISC:4,SST:5,CA:6,AGR:7,CRE:9,PTC:10};
     const jssTeacherIds={1:5,2:4,5:6,6:7,7:8,8:9,9:10,10:11,12:12};
     const jssTimes=[['08:20','09:00'],['09:00','09:40'],['09:50','10:30'],['10:30','11:10'],['11:40','12:20'],['12:20','13:00'],['14:00','14:40'],['14:40','15:20']];
+    const jssDayBlocks=[
+      {period:1},{period:2},{activity:'Short break',start:'09:40',end:'09:50'},
+      {period:3},{period:4},{activity:'Long break',start:'11:10',end:'11:40'},
+      {period:5},{period:6},{activity:'Lunch',start:'13:00',end:'14:00'},
+      {period:7},{period:8},{activity:'Games',start:'15:20',end:'16:45'}
+    ];
     const jssTemplate={
       Monday:{
         G7:['MATH:9','ENG:6','KISW:7','ISC:10','CA:2','SST:7','AGR:7','PTC:5'],
@@ -661,9 +667,10 @@ else if(p==='timetable'){
         [{name:view==='class'?choice:(jssTeacherNames[choice]||'Teacher '+choice),rows}];
       host.innerHTML=groups.map(group=>'<section class="panel" style="margin:12px 0;overflow:auto"><h3>'+esc(group.name)+'</h3>'+days.map(day=>{
         const dayRows=group.rows.filter(x=>x.day===day);
-        return '<h4 style="margin:14px 0 7px">'+day+'</h4><div style="display:grid;grid-template-columns:repeat(8,minmax(112px,1fr));gap:7px;min-width:920px">'+Array.from({length:8},(_,i)=>{
-          const x=dayRows.find(y=>y.period===i+1);
-          return '<div style="border:1px solid var(--border,#ddd);border-radius:10px;padding:9px;background:var(--surface,#fff);min-height:92px"><small>Period '+(i+1)+' · '+jssTimes[i][0]+'–'+jssTimes[i][1]+'</small>'+(x?'<div style="font-weight:700;margin-top:8px">'+esc(jssSubjectNames[x.subjectCode])+'</div><small>'+esc(jssTeacherNames[x.teacherCode]||'Teacher '+x.teacherCode)+'</small>'+(x.session==='Double'?'<div><small>Double lesson</small></div>':''):'<div style="margin-top:12px;color:var(--muted,#777)">Free</div>')+'</div>';
+        return '<h4 style="margin:14px 0 7px">'+day+'</h4><div style="display:grid;grid-template-columns:repeat(12,minmax(112px,1fr));gap:7px;min-width:1450px">'+jssDayBlocks.map(block=>{
+          if(block.activity)return '<div style="border:1px dashed var(--border,#aaa);border-radius:10px;padding:9px;background:var(--surface,#f4f6f8);min-height:92px"><small>'+block.start+'–'+block.end+'</small><div style="font-weight:700;margin-top:8px">'+esc(block.activity)+'</div><small>School activity</small></div>';
+          const x=dayRows.find(y=>y.period===block.period);
+          return '<div style="border:1px solid var(--border,#ddd);border-radius:10px;padding:9px;background:var(--surface,#fff);min-height:92px"><small>Period '+block.period+' · '+jssTimes[block.period-1][0]+'–'+jssTimes[block.period-1][1]+'</small>'+(x?'<div style="font-weight:700;margin-top:8px">'+esc(jssSubjectNames[x.subjectCode])+'</div><small>'+esc(jssTeacherNames[x.teacherCode]||'Teacher '+x.teacherCode)+'</small>'+(x.session==='Double'?'<div><small>Double lesson</small></div>':''):'<div style="margin-top:12px;color:var(--muted,#777)">Free</div>')+'</div>';
         }).join('')+'</div>';
       }).join('')+'</section>').join('');
       const clashes=jssFindClashes(jssPreview);
@@ -683,6 +690,7 @@ else if(p==='timetable'){
         <div id="jssPreviewArea"></div>
       </section>
       <div class="panel" style="margin-bottom:16px"><b>${sorted.length}</b> saved lesson(s) · <b>${classes.data.length}</b> classes · <b>${subjects.data.length}</b> subjects · <b>${teachers.data.length}</b> teachers</div>
+      <section class="panel" style="margin-bottom:16px"><h3>Daily school activities — Junior Secondary</h3><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px"><div><b>Short break</b><br><small>9:40–9:50 AM</small></div><div><b>Long break</b><br><small>11:10–11:40 AM</small></div><div><b>Lunch</b><br><small>1:00–2:00 PM</small></div><div><b>Games</b><br><small>3:20–4:45 PM</small></div></div><small class="muted">These are fixed school activities and are not counted as teaching lessons.</small></section>
       <div class="form-card" id="lessonEditor" style="margin-bottom:18px"><h3 id="lessonFormTitle">Add a lesson</h3><form id="addTimetableLesson" class="form-grid">
         ${selectField('Class / Stream','class_id',classes.data.map(x=>`<option value="${esc(x.id)}">${esc([x.Class_Name,x.Stream].filter(Boolean).join(' '))}</option>`).join(''))}
         ${selectField('Subject','subject_id',subjects.data.map(x=>`<option value="${esc(x.id)}">${esc(x['Subject _Name']||'')}</option>`).join(''))}
