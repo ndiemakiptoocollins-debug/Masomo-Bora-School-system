@@ -577,7 +577,112 @@ else if(p==='timetable'){
     const teacherMap=new Map(teachers.data.map(x=>[String(x.id),[x['First Name'],x['Last Name']].filter(Boolean).join(' ')]));
     const dayOrder={Monday:1,Tuesday:2,Wednesday:3,Thursday:4,Friday:5,Saturday:6,Sunday:7};
     const sorted=[...lessons.data].sort((a,b)=>(dayOrder[a['Day _of_week']]||8)-(dayOrder[b['Day _of_week']]||8)||String(a['Start _time']).localeCompare(String(b['Start _time'])));
-    c.innerHTML=`<div class="section-head"><div><h3>Class timetable</h3><p>Lessons saved in your Supabase school database.</p></div><button class="btn" id="refreshTimetable" type="button">Refresh</button></div>
+
+    const jssClassIds={G7:5,G8A:6,G8C:7,G9:8};
+    const jssSubjectIds={MATH:1,ENG:2,KISW:3,ISC:4,SST:5,CA:6,AGR:7,CRE:9,PTC:10};
+    const jssTeacherIds={1:5,2:4,5:6,6:7,7:8,8:9,9:10,10:11,12:12};
+    const jssTimes=[['08:20','09:00'],['09:00','09:40'],['09:50','10:30'],['10:30','11:10'],['11:40','12:20'],['12:20','13:00'],['14:00','14:40'],['14:40','15:20']];
+    const jssTemplate={
+      Monday:{
+        G7:['MATH:9','ENG:6','KISW:7','ISC:10','CA:2','SST:7','AGR:7','PTC:5'],
+        G8A:['ENG:6','MATH:5','KISW:1','CA:2','SST:12','PTC:5','ISC:10','CRE:6'],
+        G8C:['MATH:10','ENG:8','CA:2','PTC:5','KISW:7','SST:12','CRE:6','AGR:9'],
+        G9:['SST:1','MATH:10','ENG:8','KISW:1','ISC:9','ISC:9','AGR:8','CA:2']
+      },
+      Tuesday:{
+        G7:['KISW:7','MATH:9','ENG:6','SST:7','CA:2','AGR:7','PTC:5','CRE:6'],
+        G8A:['MATH:5','ENG:6','ISC:10','ISC:10','KISW:1','SST:12','KISW:1','CA:2'],
+        G8C:['MATH:10','SST:12','ENG:8','CA:2','KISW:7','CRE:6','AGR:9','ISC:9'],
+        G9:['ENG:8','MATH:10','KISW:1','CRE:6','ISC:10','PTC:5','CA:2','SST:1']
+      },
+      Wednesday:{
+        G7:['MATH:9','ENG:6','CA:2','PTC:5','AGR:7','ISC:10','SST:7','CRE:6'],
+        G8A:['MATH:5','KISW:1','ENG:6','CRE:6','CA:2','PTC:5','ISC:10','AGR:7'],
+        G8C:['ENG:8','MATH:10','AGR:9','KISW:7','PTC:5','CA:2','SST:12','CA:2'],
+        G9:['KISW:7','ENG:8','MATH:10','CA:2','SST:1','CRE:6','AGR:8','PTC:5']
+      },
+      Thursday:{
+        G7:['KISW:7','ENG:6','SST:7','ISC:10','MATH:9','CA:2','CRE:6','AGR:7'],
+        G8A:['ENG:6','MATH:5','KISW:1','SST:12','CA:2','AGR:7','PTC:5','CRE:6'],
+        G8C:['MATH:10','ENG:8','ISC:9','ISC:9','CRE:6','PTC:5','AGR:9','CA:2'],
+        G9:['ENG:8','MATH:10','PTC:5','SST:1','AGR:8','MATH:10','CA:2','CRE:12']
+      },
+      Friday:{
+        G7:['ENG:6','MATH:9','ISC:10','ISC:10','KISW:7','CA:2','PTC:5','CRE:6'],
+        G8A:['MATH:5','ENG:6','CRE:6','CA:2','SST:12','ISC:10','AGR:7','PTC:5'],
+        G8C:['MATH:10','KISW:7','SST:12','ENG:8','PTC:5','ISC:9','CRE:6','CA:2'],
+        G9:['ENG:8','MATH:10','CA:2','CRE:6','KISW:1','PTC:5','ISC:9','AGR:8']
+      }
+    };
+    const jssTeacherNames={1:'Mr Shibembe',2:'Mr Kirui',5:'Mr Lagat',6:'Md Caroline',7:'Mr Wekesa',8:'Md Ivy Lagat',9:'Mr Norman',10:'Md Beatrice',12:'Mr Ndiema'};
+    const jssSubjectNames={MATH:'Mathematics',ENG:'English',KISW:'Kiswahili',ISC:'Integrated Science',SST:'Social Studies',CA:'Creative Arts',AGR:'Agriculture',CRE:'Christian Religious Education',PTC:'Pre-Technical'};
+    let jssPreview=[];
+    const jssBuild=()=>{
+      const rows=[];
+      Object.entries(jssTemplate).forEach(([day,classesForDay])=>{
+        Object.entries(classesForDay).forEach(([classCode,slots])=>{
+          slots.forEach((entry,index)=>{
+            const [subjectCode,teacherCodeText]=entry.split(':');
+            const teacherCode=Number(teacherCodeText);
+            const previous=slots[index-1],next=slots[index+1];
+            const isDouble=(previous===entry||next===entry);
+            rows.push({
+              classCode,classId:jssClassIds[classCode],day,period:index+1,
+              subjectCode,subjectId:jssSubjectIds[subjectCode],
+              teacherCode,teacherId:jssTeacherIds[teacherCode],
+              start:jssTimes[index][0],end:jssTimes[index][1],
+              session:isDouble?'Double':'Normal'
+            });
+          });
+        });
+      });
+      return rows;
+    };
+    const jssFindClashes=rows=>{
+      const clashes=[];
+      const occupied=new Map();
+      rows.forEach(row=>{
+        const key=row.day+'|'+row.period+'|'+row.teacherId;
+        if(occupied.has(key))clashes.push({day:row.day,period:row.period,teacher:row.teacherCode,first:occupied.get(key),second:row});
+        else occupied.set(key,row);
+      });
+      return clashes;
+    };
+    const jssRenderPreview=()=>{
+      const host=$('#jssPreviewArea');if(!host)return;
+      const view=$('#jssViewMode').value;
+      const choice=$('#jssViewChoice').value;
+      let rows=jssPreview;
+      if(view==='class')rows=rows.filter(x=>x.classCode===choice);
+      if(view==='teacher')rows=rows.filter(x=>String(x.teacherCode)===choice);
+      const days=['Monday','Tuesday','Wednesday','Thursday','Friday'];
+      const classCodes=['G7','G8A','G8C','G9'];
+      const groups= view==='whole'?classCodes.map(code=>({name:code,rows:rows.filter(x=>x.classCode===code)})) :
+        [{name:view==='class'?choice:(jssTeacherNames[choice]||'Teacher '+choice),rows}];
+      host.innerHTML=groups.map(group=>'<section class="panel" style="margin:12px 0;overflow:auto"><h3>'+esc(group.name)+'</h3>'+days.map(day=>{
+        const dayRows=group.rows.filter(x=>x.day===day);
+        return '<h4 style="margin:14px 0 7px">'+day+'</h4><div style="display:grid;grid-template-columns:repeat(8,minmax(112px,1fr));gap:7px;min-width:920px">'+Array.from({length:8},(_,i)=>{
+          const x=dayRows.find(y=>y.period===i+1);
+          return '<div style="border:1px solid var(--border,#ddd);border-radius:10px;padding:9px;background:var(--surface,#fff);min-height:92px"><small>Period '+(i+1)+' · '+jssTimes[i][0]+'–'+jssTimes[i][1]+'</small>'+(x?'<div style="font-weight:700;margin-top:8px">'+esc(jssSubjectNames[x.subjectCode])+'</div><small>'+esc(jssTeacherNames[x.teacherCode]||'Teacher '+x.teacherCode)+'</small>'+(x.session==='Double'?'<div><small>Double lesson</small></div>':''):'<div style="margin-top:12px;color:var(--muted,#777)">Free</div>')+'</div>';
+        }).join('')+'</div>';
+      }).join('')+'</section>').join('');
+      const clashes=jssFindClashes(jssPreview);
+      $('#jssDiagnostics').innerHTML=clashes.length?'<p style="color:#b45309"><b>'+clashes.length+' teacher clash(es) detected.</b> Review before saving.</p>': '<p style="color:#16834a"><b>No teacher clashes detected.</b> Class periods are also checked for duplicates.</p>';
+      $('#jssSaveGenerated').disabled=clashes.length>0||jssPreview.length!==160;
+    };
+    c.innerHTML=`<div class="section-head"><div><h3>Junior Secondary timetable</h3><p>Generate a preview from the approved old timetable. Existing manual timetable tools remain below.</p></div><button class="btn" id="refreshTimetable" type="button">Refresh</button></div>
+      <section class="form-card" style="margin-bottom:18px">
+        <h3>Automatic JSS timetable generator</h3>
+        <p class="muted">Creates 160 lessons for G7, G8A, G8C and G9, Monday to Friday. Nothing is saved until you review the preview and confirm.</p>
+        <div class="form-actions"><button class="btn primary" type="button" id="jssGenerate">Generate preview</button><button class="btn" type="button" id="jssSaveGenerated" disabled>Save generated timetable</button></div>
+        <div id="jssViewControls" style="display:none;display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+          <label>View <select id="jssViewMode"><option value="whole">Whole JSS</option><option value="class">Individual class</option><option value="teacher">Individual teacher</option></select></label>
+          <label id="jssChoiceWrap" style="display:none">Select <select id="jssViewChoice"></select></label>
+        </div>
+        <div id="jssDiagnostics" aria-live="polite"></div>
+        <div id="jssPreviewArea"></div>
+      </section>
+      <div class="panel" style="margin-bottom:16px"><b>${sorted.length}</b> saved lesson(s) · <b>${classes.data.length}</b> classes · <b>${subjects.data.length}</b> subjects · <b>${teachers.data.length}</b> teachers</div>
       <div class="panel" style="margin-bottom:16px"><b>${sorted.length}</b> saved lesson(s) · <b>${classes.data.length}</b> classes · <b>${subjects.data.length}</b> subjects · <b>${teachers.data.length}</b> teachers</div>
       <div class="form-card" id="lessonEditor" style="margin-bottom:18px"><h3 id="lessonFormTitle">Add a lesson</h3><form id="addTimetableLesson" class="form-grid">
         ${selectField('Class / Stream','class_id',classes.data.map(x=>`<option value="${esc(x.id)}">${esc([x.Class_Name,x.Stream].filter(Boolean).join(' '))}</option>`).join(''))}
@@ -592,6 +697,44 @@ else if(p==='timetable'){
       </form><p id="timetableFormMessage" class="muted" aria-live="polite">Choose the class, subject, teacher and lesson time.</p></div>
       ${table(['Class','Day','Start','End','Subject','Teacher','Session','Room','Actions'],sorted.map(x=>`<tr><td>${esc(classMap.get(String(x['Class _id']))||'—')}</td><td>${esc(x['Day _of_week'])}</td><td>${esc(String(x['Start _time']||'').slice(0,5))}</td><td>${esc(String(x.End_time||'').slice(0,5))}</td><td>${esc(subjectMap.get(String(x['Subject _id']))||'—')}</td><td>${esc(teacherMap.get(String(x['Teacher _id']))||'Unassigned')}</td><td>${esc(x['Session _type']||'—')}</td><td>${esc(x.Room||'—')}</td><td><button class="btn small" type="button" data-edit-lesson="${esc(x.id)}">Edit</button> <button class="btn small danger" type="button" data-delete-lesson="${esc(x.id)}">Delete</button></td></tr>`))}`;
     $('#refreshTimetable').onclick=()=>render();
+    $('#jssGenerate').onclick=()=>{
+      jssPreview=jssBuild();
+      $('#jssViewControls').style.display='flex';
+      $('#jssViewMode').value='whole';
+      $('#jssViewChoice').innerHTML='';
+      jssRenderPreview();
+      toast('JSS preview generated. Review before saving.');
+    };
+    $('#jssViewMode').onchange=()=>{
+      const mode=$('#jssViewMode').value;
+      const wrap=$('#jssViewChoice').parentElement;
+      wrap.style.display=mode==='whole'?'none':'block';
+      $('#jssViewChoice').innerHTML=mode==='class'
+        ? ['G7','G8A','G8C','G9'].map(x=>'<option value="'+x+'">'+x+'</option>').join('')
+        : Object.keys(jssTeacherNames).map(x=>'<option value="'+x+'">Teacher '+x+' – '+esc(jssTeacherNames[x])+'</option>').join('');
+      jssRenderPreview();
+    };
+    $('#jssViewChoice').onchange=jssRenderPreview;
+    $('#jssSaveGenerated').onclick=async()=>{
+      if(jssPreview.length!==160||jssFindClashes(jssPreview).length){toast('Resolve timetable validation issues before saving.');return;}
+      if(sorted.length){toast('The timetable table already contains lessons. No records were changed; use the manual editor for additions.');return;}
+      if(!confirm('Save all 160 JSS lessons to the database? This will add new records and will not replace existing lessons.'))return;
+      const button=$('#jssSaveGenerated');button.disabled=true;button.textContent='Saving...';
+      try{
+        const payload=jssPreview.map(x=>({
+          'Class _id':x.classId,'Subject _id':x.subjectId,'Teacher _id':x.teacherId,
+          'Day _of_week':x.day,'Start _time':x.start,'End_time':x.end,
+          'Session _type':x.session,'Room':null
+        }));
+        const {error}=await supabaseClient.from('School Timetable').insert(payload);
+        if(error)throw error;
+        toast('160 JSS lessons saved successfully.');
+        await render();
+      }catch(err){
+        toast('Could not save timetable: '+(err.message||'Please try again.'));
+        button.disabled=false;button.textContent='Save generated timetable';
+      }
+    };
     let editingLessonId=null;
     const lessonForm=$('#addTimetableLesson');
     const lessonMessage=$('#timetableFormMessage');
