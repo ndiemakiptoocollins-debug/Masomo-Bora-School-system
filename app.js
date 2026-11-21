@@ -457,12 +457,30 @@ if(state.page==='users'){
     }
     const tableHtml=filtered.length?table(['Full name','Email','Contact','Account role','Date created','Actions'],filtered.map(u=>{
       const created=u.created_at?new Date(u.created_at).toLocaleDateString():'—';
-      const action=u.role==='admin'?'—':'<button class="btn small" type="button" data-edit-user="'+esc(u.id)+'">Edit</button>';
+      const action=u.role==='admin'?'—':'<button class="btn small" type="button" data-edit-user="'+esc(u.id)+'">Edit</button> <button class="btn small danger" type="button" data-delete-user="'+esc(u.id)+'">Delete</button>';
       return '<tr><td><b>'+esc(u.full_name||'—')+'</b></td><td>'+esc(u.email||'—')+'</td><td>'+esc(u.phone||'—')+'</td><td><span class="badge">'+esc(u.role||'unassigned')+'</span></td><td>'+esc(created)+'</td><td>'+action+'</td></tr>';
     })):'<p class="muted">No registered users match your search or filter.</p>';
     area.innerHTML=editHtml+tableHtml;
     area.querySelectorAll('[data-edit-user]').forEach(button=>{
       button.onclick=()=>{editingUserId=button.dataset.editUser;renderRegisteredUsers();};
+    });
+    area.querySelectorAll('[data-delete-user]').forEach(button=>{
+      button.onclick=async()=>{
+        const target=registeredUsers.find(u=>u.id===button.dataset.deleteUser);
+        if(!target)return;
+        if(!confirm('Delete the login account for '+(target.full_name||target.email||'this user')+'? Their teacher/staff record will be kept. This cannot be undone.'))return;
+        button.disabled=true;
+        try{
+          const {data,error}=await supabaseClient.functions.invoke('admin-delete-user',{body:{user_id:target.id}});
+          if(error)throw error;
+          if(data?.error)throw new Error(data.error);
+          toast('User login account deleted. School staff records were kept.');
+          await loadRegisteredUsers();
+        }catch(err){
+          toast(err.message||'Could not delete the user account. Please try again.');
+          button.disabled=false;
+        }
+      };
     });
     $('#cancelEditUser')?.addEventListener('click',()=>{editingUserId=null;renderRegisteredUsers();});
     $('#editRegisteredUserForm')?.addEventListener('submit',async e=>{
