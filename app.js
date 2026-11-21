@@ -675,14 +675,13 @@ else if(p==='timetable'){
         <h3>Automatic JSS timetable generator</h3>
         <p class="muted">Creates 160 lessons for G7, G8A, G8C and G9, Monday to Friday. Nothing is saved until you review the preview and confirm.</p>
         <div class="form-actions"><button class="btn primary" type="button" id="jssGenerate">Generate preview</button><button class="btn" type="button" id="jssSaveGenerated" disabled>Save generated timetable</button></div>
-        <div id="jssViewControls" style="display:none;display:flex;gap:10px;flex-wrap:wrap;margin-top:14px">
+        <div id="jssViewControls" style="display:none;gap:10px;flex-wrap:wrap;margin-top:14px">
           <label>View <select id="jssViewMode"><option value="whole">Whole JSS</option><option value="class">Individual class</option><option value="teacher">Individual teacher</option></select></label>
           <label id="jssChoiceWrap" style="display:none">Select <select id="jssViewChoice"></select></label>
         </div>
         <div id="jssDiagnostics" aria-live="polite"></div>
         <div id="jssPreviewArea"></div>
       </section>
-      <div class="panel" style="margin-bottom:16px"><b>${sorted.length}</b> saved lesson(s) · <b>${classes.data.length}</b> classes · <b>${subjects.data.length}</b> subjects · <b>${teachers.data.length}</b> teachers</div>
       <div class="panel" style="margin-bottom:16px"><b>${sorted.length}</b> saved lesson(s) · <b>${classes.data.length}</b> classes · <b>${subjects.data.length}</b> subjects · <b>${teachers.data.length}</b> teachers</div>
       <div class="form-card" id="lessonEditor" style="margin-bottom:18px"><h3 id="lessonFormTitle">Add a lesson</h3><form id="addTimetableLesson" class="form-grid">
         ${selectField('Class / Stream','class_id',classes.data.map(x=>`<option value="${esc(x.id)}">${esc([x.Class_Name,x.Stream].filter(Boolean).join(' '))}</option>`).join(''))}
